@@ -3,8 +3,6 @@ package model;
 import lombok.*;
 import model.helper.Type;
 
-import java.util.ArrayList;
-import java.util.List;
 
 @AllArgsConstructor
 public class CardModel {
@@ -21,9 +19,9 @@ public class CardModel {
     private int damage;
 
     /**
-     *  The type of a card can be a spell or a monster
-     *  Is the cardTypeMonster is true than the type of the card is a monster
-     *  If it is false it is a spell
+     * The type of a card can be a spell or a monster
+     * Is the cardTypeMonster is true than the type of the card is a monster
+     * If it is false it is a spell
      */
     @Getter
     @Setter
@@ -31,6 +29,14 @@ public class CardModel {
 
     @Getter
     @Setter
-    private Type cardType;
+    private Type elementType;
+
+    @Getter
+    @Setter
+    private StackModel stackModel;
+
+    @Getter
+    @Setter
+    private Deck deck;
 
 }

@@ -5,8 +5,6 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 
-import java.util.ArrayList;
-import java.util.List;
 
 @AllArgsConstructor
 public class UserModel {
@@ -21,10 +19,19 @@ public class UserModel {
     @Setter
     private String password;
 
+    /**
+     * Every user has 20 coins
+     */
     @Getter
     @Setter
     private int balance;
 
     @Getter
-    private final StackModel stackModel;
+    @Setter
+    private StackModel stackModel;
+
+    @Getter
+    @Setter
+    private Deck deck;
+
 }
