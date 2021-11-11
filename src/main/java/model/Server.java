@@ -44,8 +44,8 @@ public class Server {
 
         boolean tie = true;
         for (int i = 0; i <= 100; i++) {
-            CardModel cardModelFirst = firstUser.getDeck().getCardModelList().size() > 0 ? firstUser.getDeck().getCardModelList().get(0) : null;
-            CardModel cardModelSecond = secondUser.getDeck().getCardModelList().size() > 0 ? secondUser.getDeck().getCardModelList().get(0) : null;
+            CardModel cardModelFirst = firstUser.getDeck().getCardModelList().isEmpty() ? firstUser.getDeck().getCardModelList().get(0) : null;
+            CardModel cardModelSecond = secondUser.getDeck().getCardModelList().isEmpty() ? secondUser.getDeck().getCardModelList().get(0) : null;
             if (cardModelFirst != null && cardModelSecond != null) {
                 fight(firstUser, secondUser, cardModelFirst, cardModelSecond);
             } else {
@@ -143,7 +143,7 @@ public class Server {
         stackModel.setUserModel(userModel);
 
         // Create Deck and add User
-        Deck deck = new Deck(userModel, null);
+        Deck deck = new Deck(userModel);
         defineDeck(deck, cardModel1);
         defineDeck(deck, cardModel2);
         defineDeck(deck, cardModel3);
@@ -176,7 +176,7 @@ public class Server {
         stackModel2.setUserModel(userModel2);
 
         // Create Deck and add User
-        Deck deck2 = new Deck(userModel2, null);
+        Deck deck2 = new Deck(userModel2);
         defineDeck(deck2, cardModel5);
         defineDeck(deck2, cardModel6);
         defineDeck(deck2, cardModel7);

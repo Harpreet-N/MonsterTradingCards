@@ -13,7 +13,7 @@ public class Deck {
     @Getter
     private final List<CardModel> cardModelList;
 
-    public Deck(UserModel userModel, List<CardModel> cardModelList) {
+    public Deck(UserModel userModel) {
         this.userModel = userModel;
         this.cardModelList = new ArrayList<>(4);
     }
