@@ -14,15 +14,18 @@ public class Server {
      *
      * @param userModel
      */
+
+
+    private static int randomNum = ThreadLocalRandom.current().nextInt(0, 100 + 1);
+
     public void buyPackages(UserModel userModel) {
         if (userModel.getBalance() >= 5) {
             userModel.setBalance(userModel.getBalance() - 5);
 
-            // int randomNum = ThreadLocalRandom.current().nextInt(0, 100 + 1);
-            CardModel cardModel1 = new CardModel(5, "AA", 10000, true, Type.FIRE, null, null);
-            CardModel cardModel2 = new CardModel(6, "Money", 10000, true, Type.NORMAL, null, null);
-            CardModel cardModel3 = new CardModel(7, "Stack", 10000, true, Type.WATER, null, null);
-            CardModel cardModel4 = new CardModel(8, "Baum", 10000, true, Type.FIRE, null, null);
+            CardModel cardModel1 = new CardModel(5, "AA", 5, true, Type.FIRE, null, null);
+            CardModel cardModel2 = new CardModel(6, "Money", 10, false, Type.NORMAL, null, null);
+            CardModel cardModel3 = new CardModel(7, "Stack", 8, false, Type.WATER, null, null);
+            CardModel cardModel4 = new CardModel(8, "Baum", 100, true, Type.FIRE, null, null);
 
             userModel.getStackModel().addCard(cardModel1);
             userModel.getStackModel().addCard(cardModel2);
@@ -39,15 +42,22 @@ public class Server {
         chooseBestCard(firstUser);
         chooseBestCard(secondUser);
 
+        boolean tie = true;
         for (int i = 0; i <= 100; i++) {
             CardModel cardModelFirst = firstUser.getDeck().getCardModelList().size() > 0 ? firstUser.getDeck().getCardModelList().get(0) : null;
             CardModel cardModelSecond = secondUser.getDeck().getCardModelList().size() > 0 ? secondUser.getDeck().getCardModelList().get(0) : null;
             if (cardModelFirst != null && cardModelSecond != null) {
                 fight(firstUser, secondUser, cardModelFirst, cardModelSecond);
             } else {
-                System.out.println("User xy won");
+                tie = false;
+                String winner = cardModelFirst == null ? secondUser.getUsername() : firstUser.getUsername();
+                System.out.println("User: " + winner + "  won");
                 break;
             }
+        }
+
+        if (tie) {
+            System.out.println("Nobody won");
         }
     }
 
@@ -89,7 +99,8 @@ public class Server {
         } else {
             int firstDamage = validateType(firstCard, secondCard);
             int secondDamage = validateType(secondCard, firstCard);
-            return firstDamage == 0 ? firstDamage : secondDamage;
+            return (firstDamage != 0 ? firstCard.getDamage() * firstDamage : firstCard.getDamage()) -
+                    (secondDamage != 0 ? secondCard.getDamage() * secondDamage : secondCard.getDamage());
         }
     }
 
@@ -104,6 +115,8 @@ public class Server {
             return 2;
         } else if (firstType == Type.NORMAL && secondType == Type.WATER) {
             return 2;
+        } else if (secondType == Type.FIRE && firstType == Type.WATER) {
+            return (1 / 2);
         }
         return 0;
     }
@@ -114,8 +127,8 @@ public class Server {
 
         // Create Cards
         CardModel cardModel1 = new CardModel(1, "Monster", 20, true, Type.FIRE, null, null);
-        CardModel cardModel2 = new CardModel(2, "Car", 10, true, Type.NORMAL, null, null);
-        CardModel cardModel3 = new CardModel(3, "Ritter", 50, true, Type.WATER, null, null);
+        CardModel cardModel2 = new CardModel(2, "Car", 10, false, Type.NORMAL, null, null);
+        CardModel cardModel3 = new CardModel(3, "Ritter", 50, false, Type.WATER, null, null);
         CardModel cardModel4 = new CardModel(4, "Baum", 5, true, Type.FIRE, null, null);
 
         // Create Stack and add Cards
@@ -148,7 +161,7 @@ public class Server {
         // Create Cards
         CardModel cardModel5 = new CardModel(5, "AA", 100, true, Type.FIRE, null, null);
         CardModel cardModel6 = new CardModel(6, "Money", 100, false, Type.NORMAL, null, null);
-        CardModel cardModel7 = new CardModel(7, "Stack", 50, false, Type.WATER, null, null);
+        CardModel cardModel7 = new CardModel(7, "Stack", 5000, false, Type.WATER, null, null);
         CardModel cardModel8 = new CardModel(8, "Baum", 50, true, Type.FIRE, null, null);
 
         // Create Stack and add Cards
