@@ -1,9 +1,14 @@
 package model;
 
+import model.helper.MonsterType;
 import model.helper.Type;
 
-import java.util.Comparator;
-import java.util.concurrent.ThreadLocalRandom;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.util.Random;
+
+import org.apache.log4j.Logger;
+
 
 public class Server {
 
@@ -15,17 +20,16 @@ public class Server {
      * @param userModel
      */
 
-
-    private static int randomNum = ThreadLocalRandom.current().nextInt(0, 100 + 1);
+    private static final Logger logger = Logger.getLogger(Server.class);
 
     public void buyPackages(UserModel userModel) {
         if (userModel.getBalance() >= 5) {
             userModel.setBalance(userModel.getBalance() - 5);
 
-            CardModel cardModel1 = new CardModel(5, "AA", 5, true, Type.FIRE, null, null);
-            CardModel cardModel2 = new CardModel(6, "Money", 10, false, Type.NORMAL, null, null);
-            CardModel cardModel3 = new CardModel(7, "Stack", 8, false, Type.WATER, null, null);
-            CardModel cardModel4 = new CardModel(8, "Baum", 100, true, Type.FIRE, null, null);
+            CardModel cardModel1 = new CardModel(5, "AA", 5, Type.FIRE, MonsterType.DRAGONS, null, null);
+            CardModel cardModel2 = new CardModel(6, "Money", 10, Type.NORMAL, MonsterType.FIREELVES, null, null);
+            CardModel cardModel3 = new CardModel(7, "Stack", 8, Type.WATER, MonsterType.GOBLINS, null, null);
+            CardModel cardModel4 = new CardModel(8, "Baum", 100, Type.FIRE, MonsterType.ORKS, null, null);
 
             userModel.getStackModel().addCard(cardModel1);
             userModel.getStackModel().addCard(cardModel2);
@@ -39,31 +43,33 @@ public class Server {
         UserModel firstUser = createFirstDummyUser();
         UserModel secondUser = createSecondDummyUser();
 
-        chooseBestCard(firstUser);
-        chooseBestCard(secondUser);
-
         boolean tie = true;
         for (int i = 0; i <= 100; i++) {
-            CardModel cardModelFirst = firstUser.getDeck().getCardModelList().isEmpty() ? firstUser.getDeck().getCardModelList().get(0) : null;
-            CardModel cardModelSecond = secondUser.getDeck().getCardModelList().isEmpty() ? secondUser.getDeck().getCardModelList().get(0) : null;
+            CardModel cardModelFirst = getCardModel(firstUser);
+            CardModel cardModelSecond = getCardModel(secondUser);
             if (cardModelFirst != null && cardModelSecond != null) {
                 fight(firstUser, secondUser, cardModelFirst, cardModelSecond);
             } else {
                 tie = false;
                 String winner = cardModelFirst == null ? secondUser.getUsername() : firstUser.getUsername();
-                System.out.println("User: " + winner + "  won");
+                logger.info("User: " + winner + " won");
                 break;
             }
         }
 
         if (tie) {
-            System.out.println("Nobody won");
+            logger.info("Nobody won");
         }
     }
 
-    // Card will be sorted
-    protected static void chooseBestCard(UserModel firstUser) {
-        firstUser.getDeck().getCardModelList().sort(Comparator.comparingInt(CardModel::getDamage).reversed());
+    private static CardModel getCardModel(UserModel user) {
+        try {
+            Random rand = SecureRandom.getInstanceStrong();
+            return user.getDeck().getCardModelList().isEmpty() ? null : user.getDeck().getCardModelList().get(rand.nextInt(user.getDeck().getCardModelList().size()));
+        } catch (NoSuchAlgorithmException e) {
+            logger.info("Something went wrong");
+        }
+        return null;
     }
 
     public static void defineDeck(Deck deck, CardModel card) {
@@ -78,14 +84,23 @@ public class Server {
         card.setStackModel(stackModel);
     }
 
-    // loop over 100
     public static void fight(UserModel firstUser, UserModel secondUser, CardModel firstCard, CardModel secondCard) {
         int result = calculateDamage(firstCard, secondCard);
         if (result > 0) {
+            printFightingResult(firstUser, secondUser, firstCard, secondCard);
             removeCardFromUser(firstUser, secondUser, secondCard);
         } else if (result != 0) {
             removeCardFromUser(secondUser, firstUser, firstCard);
+            printFightingResult(secondUser, firstUser, secondCard, firstCard);
+
         }
+
+    }
+
+    private static void printFightingResult(UserModel firstUser, UserModel secondUser, CardModel firstCard, CardModel secondCard) {
+        logger.info("Player " + firstUser.getUsername() + ": " + firstCard.getName() + " (" + firstCard.getDamage() + ") vs "
+                + "Player " + secondUser.getUsername() + ": " + secondCard.getName() + " (" + secondCard.getDamage() + ") => " +
+                firstCard.getName() + " defeats " + secondCard.getName());
     }
 
     protected static void removeCardFromUser(UserModel winner, UserModel loser, CardModel card) {
@@ -94,8 +109,11 @@ public class Server {
     }
 
     public static int calculateDamage(CardModel firstCard, CardModel secondCard) {
-        if (firstCard.isCardTypeMonster() && secondCard.isCardTypeMonster()) {
-            return firstCard.getDamage() - secondCard.getDamage();
+        if (firstCard.getMonsterType() != null && secondCard.getMonsterType() != null) {
+            int firstDamangeMonsterType = validateMonsterType(firstCard, secondCard);
+            int secondDamangeMonsterType = validateMonsterType(secondCard, firstCard);
+
+            return firstDamangeMonsterType - secondDamangeMonsterType;
         } else {
             int firstDamage = validateType(firstCard, secondCard);
             int secondDamage = validateType(secondCard, firstCard);
@@ -103,6 +121,21 @@ public class Server {
                     (secondDamage != 0 ? secondCard.getDamage() * secondDamage : secondCard.getDamage());
         }
     }
+
+    protected static int validateMonsterType(CardModel firstCard, CardModel secondCard) {
+        MonsterType firstType = firstCard.getMonsterType();
+        MonsterType secondType = secondCard.getMonsterType();
+        if ((firstType == MonsterType.GOBLINS && secondType == MonsterType.DRAGONS) ||
+                firstType == MonsterType.ORKS && secondType == MonsterType.WIZZARD ||
+                (firstType == MonsterType.FIREELVES && secondType == MonsterType.DRAGONS)) {
+            return 0;
+        }
+        return firstCard.getDamage();
+    }
+
+
+    // The armor of Knights is so heavy that WaterSpells make them drown them instantly.
+    //• The Kraken is immune against spells
 
     // TODO: Schwächere Types anpassen
     public static int validateType(CardModel firstCard, CardModel secondCard) {
@@ -126,10 +159,10 @@ public class Server {
         // First user
 
         // Create Cards
-        CardModel cardModel1 = new CardModel(1, "Monster", 20, true, Type.FIRE, null, null);
-        CardModel cardModel2 = new CardModel(2, "Car", 10, false, Type.NORMAL, null, null);
-        CardModel cardModel3 = new CardModel(3, "Ritter", 50, false, Type.WATER, null, null);
-        CardModel cardModel4 = new CardModel(4, "Baum", 5, true, Type.FIRE, null, null);
+        CardModel cardModel1 = new CardModel(1, "Monster", 20, Type.FIRE, null, null, null);
+        CardModel cardModel2 = new CardModel(2, "Car", 10, Type.NORMAL, MonsterType.KRAKEN, null, null);
+        CardModel cardModel3 = new CardModel(3, "Ritter", 50, Type.WATER, MonsterType.WIZZARD, null, null);
+        CardModel cardModel4 = new CardModel(4, "Baum", 5, Type.FIRE, null, null, null);
 
         // Create Stack and add Cards
         StackModel stackModel = new StackModel();
@@ -159,10 +192,10 @@ public class Server {
         // Second User
 
         // Create Cards
-        CardModel cardModel5 = new CardModel(5, "AA", 100, true, Type.FIRE, null, null);
-        CardModel cardModel6 = new CardModel(6, "Money", 100, false, Type.NORMAL, null, null);
-        CardModel cardModel7 = new CardModel(7, "Stack", 5000, false, Type.WATER, null, null);
-        CardModel cardModel8 = new CardModel(8, "Baum", 50, true, Type.FIRE, null, null);
+        CardModel cardModel5 = new CardModel(5, "AA", 50, Type.FIRE, null, null, null);
+        CardModel cardModel6 = new CardModel(6, "Money", 1, Type.NORMAL, null, null, null);
+        CardModel cardModel7 = new CardModel(7, "Stack", 5, Type.WATER, MonsterType.KNIGHTS, null, null);
+        CardModel cardModel8 = new CardModel(8, "Baum", 5, Type.FIRE, MonsterType.ORKS, null, null);
 
         // Create Stack and add Cards
         StackModel stackModel2 = new StackModel();

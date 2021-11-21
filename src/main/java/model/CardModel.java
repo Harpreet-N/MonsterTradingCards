@@ -1,6 +1,7 @@
 package model;
 
 import lombok.*;
+import model.helper.MonsterType;
 import model.helper.Type;
 
 
@@ -18,18 +19,22 @@ public class CardModel {
     @Setter
     private int damage;
 
+    /*
     /**
      * The type of a card can be a spell or a monster
      * Is the cardTypeMonster is true than the type of the card is a monster
      * If it is false it is a spell
-     */
     @Getter
     @Setter
-    private boolean cardTypeMonster;
+    private boolean cardTypeMonster; */
 
     @Getter
     @Setter
     private Type elementType;
+
+    @Getter
+    @Setter
+    private MonsterType monsterType;
 
     @Getter
     @Setter
