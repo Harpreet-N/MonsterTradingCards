@@ -85,22 +85,22 @@ public class Server {
     }
 
     public static void fight(UserModel firstUser, UserModel secondUser, CardModel firstCard, CardModel secondCard) {
-        int result = calculateDamage(firstCard, secondCard);
-        if (result > 0) {
-            printFightingResult(firstUser, secondUser, firstCard, secondCard);
+        int[] result = calculateDamage(firstCard, secondCard);
+        if (result[2] > 0) {
+            printFightingResult(firstUser, secondUser, firstCard, secondCard, result[0], result[1]);
             removeCardFromUser(firstUser, secondUser, secondCard);
-        } else if (result != 0) {
+        } else if (result[2] != 0) {
             removeCardFromUser(secondUser, firstUser, firstCard);
-            printFightingResult(secondUser, firstUser, secondCard, firstCard);
+            printFightingResult(secondUser, firstUser, secondCard, firstCard, result[0], result[1]);
 
         }
-
     }
 
-    private static void printFightingResult(UserModel firstUser, UserModel secondUser, CardModel firstCard, CardModel secondCard) {
+    private static void printFightingResult(UserModel firstUser, UserModel secondUser, CardModel firstCard, CardModel secondCard, int firstDamage, int secondDamage) {
         logger.info("Player " + firstUser.getUsername() + ": " + firstCard.getName() + " (" + firstCard.getDamage() + ") vs "
                 + "Player " + secondUser.getUsername() + ": " + secondCard.getName() + " (" + secondCard.getDamage() + ") => " +
-                firstCard.getName() + " defeats " + secondCard.getName());
+                firstCard.getDamage() + " VS " + secondCard.getDamage() + " -> " + firstDamage + " VS " + secondDamage + " " +
+                "=> " + firstCard.getName() + " defeats " + secondCard.getName());
     }
 
     protected static void removeCardFromUser(UserModel winner, UserModel loser, CardModel card) {
@@ -108,18 +108,23 @@ public class Server {
         loser.getDeck().getCardModelList().remove(card);
     }
 
-    public static int calculateDamage(CardModel firstCard, CardModel secondCard) {
+    public static int[] calculateDamage(CardModel firstCard, CardModel secondCard) {
+        int[] damageArray = new int[3];
         if (firstCard.getMonsterType() != null && secondCard.getMonsterType() != null) {
-            int firstDamangeMonsterType = validateMonsterType(firstCard, secondCard);
-            int secondDamangeMonsterType = validateMonsterType(secondCard, firstCard);
-
-            return firstDamangeMonsterType - secondDamangeMonsterType;
+            damageArray[0] = validateMonsterType(firstCard, secondCard);
+            damageArray[1] = validateMonsterType(secondCard, firstCard);
+            damageArray[2] = damageArray[0] - damageArray[1];
         } else {
-            int firstDamage = validateType(firstCard, secondCard);
-            int secondDamage = validateType(secondCard, firstCard);
-            return (firstDamage != 0 ? firstCard.getDamage() * firstDamage : firstCard.getDamage()) -
-                    (secondDamage != 0 ? secondCard.getDamage() * secondDamage : secondCard.getDamage());
+            damageArray[0] = calculateNewDamage(validateType(firstCard, secondCard), firstCard);
+            damageArray[1] = calculateNewDamage(validateType(secondCard, firstCard), secondCard);
+            damageArray[2] = damageArray[0] - damageArray[1];
+
         }
+        return damageArray;
+    }
+
+    private static int calculateNewDamage(int validateType, CardModel card) {
+        return validateType != 0 ? card.getDamage() * validateType : card.getDamage();
     }
 
     protected static int validateMonsterType(CardModel firstCard, CardModel secondCard) {
@@ -133,17 +138,16 @@ public class Server {
         return firstCard.getDamage();
     }
 
-
-    // The armor of Knights is so heavy that WaterSpells make them drown them instantly.
-    //• The Kraken is immune against spells
-
-    // TODO: Schwächere Types anpassen
     public static int validateType(CardModel firstCard, CardModel secondCard) {
         Type firstType = firstCard.getElementType();
         Type secondType = secondCard.getElementType();
 
         if (firstType == Type.FIRE && secondType == Type.WATER) {
             return 2;
+        } else if (firstCard.getMonsterType() == MonsterType.KNIGHTS && secondType == Type.WATER) {
+            return 0;
+        } else if (firstCard.getMonsterType() == MonsterType.KRAKEN) {
+            return 1;
         } else if (firstType == Type.FIRE && secondType == Type.NORMAL) {
             return 2;
         } else if (firstType == Type.NORMAL && secondType == Type.WATER) {
@@ -195,7 +199,7 @@ public class Server {
         CardModel cardModel5 = new CardModel(5, "AA", 50, Type.FIRE, null, null, null);
         CardModel cardModel6 = new CardModel(6, "Money", 1, Type.NORMAL, null, null, null);
         CardModel cardModel7 = new CardModel(7, "Stack", 5, Type.WATER, MonsterType.KNIGHTS, null, null);
-        CardModel cardModel8 = new CardModel(8, "Baum", 5, Type.FIRE, MonsterType.ORKS, null, null);
+        CardModel cardModel8 = new CardModel(8, "Uhr", 5, Type.FIRE, MonsterType.ORKS, null, null);
 
         // Create Stack and add Cards
         StackModel stackModel2 = new StackModel();
