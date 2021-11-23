@@ -2,8 +2,6 @@ package model;
 
 import model.helper.MonsterType;
 import model.helper.Type;
-import org.junit.Before;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -24,11 +22,15 @@ public class GameTest {
 
     private UserModel playerB;
 
+    private CardModel playerCardA;
+
+    private CardModel playerCardB;
+
     @BeforeEach
     @Test
     void prepareUserWithStackAndDeckTest(){
-        CardModel playerCardA = new CardModel(1, "Monster", 20, Type.FIRE, null, null, null);
-        CardModel playerCardB = new CardModel(2, "Car", 10, Type.NORMAL, MonsterType.KRAKEN, null, null);
+        playerCardA = new CardModel(1, "Monster", 20, Type.FIRE, null, null, null);
+        playerCardB = new CardModel(2, "Car", 10, Type.NORMAL, MonsterType.KRAKEN, null, null);
 
         StackModel stackModelA = new StackModel();
         server.addToStack(stackModelA, playerCardA);
@@ -60,19 +62,67 @@ public class GameTest {
     }
 
 
-    @ParameterizedTest(name = "{0} should return {1} for inside rectangle")
+    @ParameterizedTest(name = "Type Test {0} should return {1} {2}")
     @MethodSource("provideCardWithTypeAndExpected")
-    void validateTypeTest(CardModel cardModel1, CardModel cardModel2, int expected) {
-        assertThat(server.validateMonsterType(cardModel1, cardModel2))
+    void validateTypeTest(CardModel cardModel1, CardModel cardModel2, int expected, int expectedMonster) {
+        assertThat(server.validateType(cardModel1, cardModel2))
                 .isEqualTo(expected);
+    }
+
+    @ParameterizedTest(name = "Monster Type Test {0} should return {1} {2}")
+    @MethodSource("provideCardWithTypeAndExpected")
+    void validateMonsterTypeTest(CardModel cardModel1, CardModel cardModel2, int expected, int expectedMonster) {
+        assertThat(server.validateMonsterType(cardModel1, cardModel2))
+                .isEqualTo(expectedMonster);
     }
 
     public static Stream<Arguments> provideCardWithTypeAndExpected() {
         return Stream.of(
-                Arguments.of(new CardModel(5, "Monster", 20, Type.FIRE, null, null, null),
-                            new CardModel(6, "Monster", 20, Type.FIRE, null, null, null),
-                        20)
+                Arguments.of(new CardModel(1, "Fire", 20, Type.FIRE, MonsterType.GOBLINS, null, null),
+                        new CardModel(2, "Fire", 20, Type.FIRE, MonsterType.DRAGONS, null, null),
+                        0,0),
+                Arguments.of(new CardModel(3, "FIRE", 20, Type.FIRE, MonsterType.ORKS, null, null),
+                        new CardModel(4, "WATER", 20, Type.WATER, MonsterType.WIZZARD, null, null),
+                        3,0),
+                Arguments.of(new CardModel(5, "FIRE", 20, Type.FIRE, MonsterType.FIREELVES, null, null),
+                        new CardModel(6, "NORMAL", 20, Type.NORMAL, MonsterType.DRAGONS, null, null),
+                        2,0),
+                Arguments.of(new CardModel(7, "FIRE", 20, Type.FIRE, MonsterType.DRAGONS, null, null),
+                        new CardModel(8, "WATER", 20, Type.WATER, MonsterType.FIREELVES, null, null),
+                        3,0),
+                Arguments.of(new CardModel(7, "NORMAL", 20, Type.NORMAL, null, null, null),
+                        new CardModel(8, "WATER", 20, Type.WATER, null, null, null),
+                        2,20),
+                Arguments.of(new CardModel(7, "NORMAL", 20, Type.NORMAL, MonsterType.KNIGHTS, null, null),
+                        new CardModel(8, "WATER", 20, Type.WATER, null, null, null),
+                        0,20)
         );
+    }
+
+    @ParameterizedTest(name = "Type Test {0} should return {1} {2}")
+    @MethodSource("provideCardWithDamageAndExpected")
+    void validateMonsterTypeTest(int validateType, CardModel cardModel, int expected) {
+        assertThat(server.calculateNewDamage(validateType, cardModel))
+                .isEqualTo(expected);
+    }
+
+    public static Stream<Arguments> provideCardWithDamageAndExpected() {
+        return Stream.of(
+                Arguments.of(0, new CardModel(1, "Fire", 20, Type.FIRE, MonsterType.GOBLINS, null, null), 20),
+                Arguments.of(1, new CardModel(1, "Fire", 20, Type.FIRE, MonsterType.GOBLINS, null, null),20),
+                Arguments.of(2, new CardModel(3, "FIRE", 20, Type.FIRE, MonsterType.ORKS, null, null), 40),
+                Arguments.of(3, new CardModel(5, "FIRE", 20, Type.FIRE, MonsterType.FIREELVES, null, null), 10)
+        );
+    }
+
+    @Test
+    void removeCardFromUserTest(){
+        assertEquals(1, playerA.getDeck().getCardModelList().size());
+        assertEquals(1, playerB.getDeck().getCardModelList().size());
+
+        server.removeCardFromUser(playerA, playerB, playerCardB);
+        assertEquals(2, playerA.getDeck().getCardModelList().size());
+        assertEquals(0, playerB.getDeck().getCardModelList().size());
     }
 
 

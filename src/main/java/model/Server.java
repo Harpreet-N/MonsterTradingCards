@@ -137,6 +137,9 @@ public class Server {
     }
 
     protected int calculateNewDamage(int validateType, CardModel card) {
+        if(validateType == 3) {
+            return card.getDamage() / 2;
+        }
         return validateType != 0 ? card.getDamage() * validateType : card.getDamage();
     }
 
@@ -145,7 +148,10 @@ public class Server {
         MonsterType secondType = secondCard.getMonsterType();
         if ((firstType == MonsterType.GOBLINS && secondType == MonsterType.DRAGONS) ||
                 firstType == MonsterType.ORKS && secondType == MonsterType.WIZZARD ||
-                (firstType == MonsterType.FIREELVES && secondType == MonsterType.DRAGONS)) {
+                (firstType == MonsterType.FIREELVES && secondType == MonsterType.DRAGONS) ||
+                (secondType == MonsterType.GOBLINS && firstType == MonsterType.DRAGONS) ||
+                secondType == MonsterType.ORKS && firstType == MonsterType.WIZZARD ||
+                (secondType == MonsterType.FIREELVES && firstType == MonsterType.DRAGONS)) {
             return 0;
         }
         return firstCard.getDamage();
@@ -155,7 +161,7 @@ public class Server {
         Type firstType = firstCard.getElementType();
         Type secondType = secondCard.getElementType();
 
-        if (firstType == Type.FIRE && secondType == Type.WATER) {
+        if (firstType == Type.WATER && secondType == Type.FIRE) {
             return 2;
         } else if (firstCard.getMonsterType() == MonsterType.KNIGHTS && secondType == Type.WATER) {
             return 0;
@@ -165,8 +171,8 @@ public class Server {
             return 2;
         } else if (firstType == Type.NORMAL && secondType == Type.WATER) {
             return 2;
-        } else if (secondType == Type.FIRE && firstType == Type.WATER) {
-            return (1 / 2);
+        } else if (firstType == Type.FIRE && secondType == Type.WATER) {
+            return 3;
         }
         return 0;
     }
