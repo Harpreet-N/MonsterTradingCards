@@ -17,11 +17,9 @@ public class StackModel {
     @Setter
     private UserModel userModel;
 
-
     public StackModel() {
         this.cardModelList = new ArrayList<>();
     }
-
 
     public void addCard(CardModel cardModel) {
         cardModelList.add(cardModel);

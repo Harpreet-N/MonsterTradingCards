@@ -4,6 +4,9 @@ import model.helper.Type;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
+import run.Server;
+import service.BuyService;
+import service.DeckService;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -18,13 +21,33 @@ public class ModelTest {
     private Deck deck;
 
     @Mock
-    private Server server = new Server();
+    private Server server;
+
+    // model splitten usw
+
+    @Mock
+    private DeckService deckService;
+
+    @Mock
+    private BuyService buyService;
+
+    @Before
+    public void setUp() {
+        cardModel = new CardModel(1, "Monster", 20, Type.FIRE, null, null, null);
+
+        userModel = new UserModel("Test", "Secret", 20, null, null);
+        stackModel = new StackModel();
+        deck = new Deck(userModel);
+
+        stackModel.setUserModel(userModel);
+        userModel.setStackModel(stackModel);
+        this.deckService.defineDeck(deck, cardModel);
+    }
 
 
     @Test
     @Before
     public void createCardTest() {
-        cardModel = new CardModel(1, "Monster", 20, Type.FIRE, null, null, null);
         assertEquals("Monster", cardModel.getName());
         assertEquals(20, cardModel.getDamage());
     }
@@ -32,14 +55,6 @@ public class ModelTest {
     @Test
     @Before
     public void createUserTest() {
-        userModel = new UserModel("Test", "Secret", 20, null, null);
-        stackModel = new StackModel();
-        deck = new Deck(userModel);
-
-        stackModel.setUserModel(userModel);
-        userModel.setStackModel(stackModel);
-        this.server.defineDeck(deck, cardModel);
-
         assertEquals("Test", userModel.getUsername());
         assertEquals("Secret", userModel.getPassword());
         assertEquals(20, userModel.getBalance());
@@ -59,7 +74,7 @@ public class ModelTest {
 
     @Test
     public void addDeckToUserTest() {
-        this.server.defineDeck(deck, cardModel);
+        this.deckService.defineDeck(deck, cardModel);
         userModel.setDeck(deck);
         assertEquals(deck.getUserModel(), userModel);
     }
@@ -70,7 +85,7 @@ public class ModelTest {
         assertEquals(20,userModel.getBalance());
         assertEquals(0,userModel.getStackModel().getCardModelList().size());
 
-        this.server.buyPackages(userModel);
+        this.buyService.buyPackages(userModel);
 
         assertEquals(15,userModel.getBalance());
         assertEquals(4,userModel.getStackModel().getCardModelList().size());

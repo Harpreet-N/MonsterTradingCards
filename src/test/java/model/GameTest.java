@@ -8,6 +8,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
+import run.Server;
+import service.CalculationService;
+import service.DeckService;
+import service.ValidateService;
 
 import java.util.stream.Stream;
 
@@ -16,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class GameTest {
 
     @Mock
-    private Server server = new Server();
+    private Server server;
 
     private UserModel playerA;
 
@@ -26,6 +30,17 @@ public class GameTest {
 
     private CardModel playerCardB;
 
+    @Mock
+    private ValidateService validateService;
+
+    @Mock
+    private CalculationService calculationService;
+
+    @Mock
+    private DeckService deckService;
+
+    // before nur setuo usw
+
     @BeforeEach
     @Test
     void prepareUserWithStackAndDeckTest(){
@@ -33,10 +48,10 @@ public class GameTest {
         playerCardB = new CardModel(2, "Car", 10, Type.NORMAL, MonsterType.KRAKEN, null, null);
 
         StackModel stackModelA = new StackModel();
-        server.addToStack(stackModelA, playerCardA);
+        deckService.addToStack(stackModelA, playerCardA);
 
         StackModel stackModelB = new StackModel();
-        server.addToStack(stackModelB, playerCardB);
+        deckService.addToStack(stackModelB, playerCardB);
 
         playerA = new UserModel("PlayA", "Secret", 20, stackModelA, null);
         playerB = new UserModel("PlayB", "Secret", 20, stackModelB, null);
@@ -45,10 +60,10 @@ public class GameTest {
         stackModelB.setUserModel(playerB);
 
         Deck deckA = new Deck(playerA);
-        server.defineDeck(deckA, playerCardA);
+        deckService.defineDeck(deckA, playerCardA);
 
         Deck deckB = new Deck(playerB);
-        server.defineDeck(deckB, playerCardB);
+        deckService.defineDeck(deckB, playerCardB);
 
         // Set Deck
         playerA.setDeck(deckA);
@@ -65,14 +80,14 @@ public class GameTest {
     @ParameterizedTest(name = "Type Test {0} should return {1} {2}")
     @MethodSource("provideCardWithTypeAndExpected")
     void validateTypeTest(CardModel cardModel1, CardModel cardModel2, int expected, int expectedMonster) {
-        assertThat(server.validateType(cardModel1, cardModel2))
+        assertThat(validateService.validateType(cardModel1.getElementType(), cardModel2.getElementType(), cardModel1.getMonsterType()))
                 .isEqualTo(expected);
     }
 
     @ParameterizedTest(name = "Monster Type Test {0} should return {1} {2}")
     @MethodSource("provideCardWithTypeAndExpected")
     void validateMonsterTypeTest(CardModel cardModel1, CardModel cardModel2, int expected, int expectedMonster) {
-        assertThat(server.validateMonsterType(cardModel1, cardModel2))
+        assertThat(validateService.validateMonsterType(cardModel1.getMonsterType(), cardModel2.getMonsterType(), cardModel1.getDamage()))
                 .isEqualTo(expectedMonster);
     }
 
@@ -102,7 +117,7 @@ public class GameTest {
     @ParameterizedTest(name = "Type Test {0} should return {1} {2}")
     @MethodSource("provideCardWithDamageAndExpected")
     void validateMonsterTypeTest(int validateType, CardModel cardModel, int expected) {
-        assertThat(server.calculateNewDamage(validateType, cardModel))
+        assertThat(calculationService.calculateNewDamage(validateType, cardModel))
                 .isEqualTo(expected);
     }
 
@@ -115,12 +130,14 @@ public class GameTest {
         );
     }
 
+    // logik
+    // when given then usw...........
     @Test
     void removeCardFromUserTest(){
         assertEquals(1, playerA.getDeck().getCardModelList().size());
         assertEquals(1, playerB.getDeck().getCardModelList().size());
 
-        server.removeCardFromUser(playerA, playerB, playerCardB);
+        deckService.removeCardFromUser(playerA, playerB, playerCardB);
         assertEquals(2, playerA.getDeck().getCardModelList().size());
         assertEquals(0, playerB.getDeck().getCardModelList().size());
     }

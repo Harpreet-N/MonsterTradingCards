@@ -5,7 +5,6 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 
-
 @AllArgsConstructor
 public class UserModel {
 
