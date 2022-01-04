@@ -1,10 +1,9 @@
 package model;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NonNull;
-import lombok.Setter;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.*;
 
+@Data
 @AllArgsConstructor
 public class UserModel {
 
@@ -12,10 +11,12 @@ public class UserModel {
     @NonNull
     @Getter
     @Setter
+    @JsonProperty("Username")
     private String username;
 
     @Getter
     @Setter
+    @JsonProperty("Password")
     private String password;
 
     /**

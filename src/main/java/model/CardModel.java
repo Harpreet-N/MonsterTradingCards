@@ -4,6 +4,7 @@ import lombok.*;
 import model.helper.MonsterType;
 import model.helper.Type;
 
+@Data
 @AllArgsConstructor
 public class CardModel {
 

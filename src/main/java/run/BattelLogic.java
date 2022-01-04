@@ -8,9 +8,9 @@ import service.DeckService;
 import service.LogFight;
 
 
-public class Server {
+public class BattelLogic {
 
-    private static final Logger logger = Logger.getLogger(Server.class);
+    private static final Logger logger = Logger.getLogger(BattelLogic.class);
 
     private CalculationService calculationService;
 

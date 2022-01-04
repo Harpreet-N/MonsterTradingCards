@@ -4,7 +4,7 @@ import model.helper.Type;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
-import run.Server;
+import run.BattelLogic;
 import service.BuyService;
 import service.DeckService;
 
@@ -21,7 +21,7 @@ public class ModelTest {
     private Deck deck;
 
     @Mock
-    private Server server;
+    private BattelLogic server;
 
     // model splitten usw
 
