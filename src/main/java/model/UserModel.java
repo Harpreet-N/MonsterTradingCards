@@ -40,4 +40,19 @@ public class UserModel {
     @JsonProperty("Deck")
     private List<Deck> deck;
 
+    @Getter
+    @Setter
+    @JsonProperty("Elo")
+    private int elo;
+
+    @Getter
+    @Setter
+    @JsonProperty("Wins")
+    private int wins;
+
+    @Getter
+    @Setter
+    @JsonProperty("Looses")
+    private int looses;
+
 }

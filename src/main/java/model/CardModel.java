@@ -4,35 +4,31 @@ import lombok.*;
 import model.helper.MonsterType;
 import model.helper.Type;
 
-@Data
-@AllArgsConstructor
-public class CardModel {
+@ToString
+@EqualsAndHashCode
+public abstract class CardModel {
 
     @NonNull
-    private long cardId;
+    @Getter
+    protected long id;
+
+    @Getter
+    protected String owner;
+    @Getter
+    protected String packageId;
 
     @Getter
     @Setter
-    private String name;
+    protected Type elementType;
 
     @Getter
     @Setter
-    private int damage;
+    protected MonsterType monsterType;
+
+    @Getter
+    protected String storageType;
 
     @Getter
     @Setter
-    private Type elementType;
-
-    @Getter
-    @Setter
-    private MonsterType monsterType;
-
-    @Getter
-    @Setter
-    private StackModel stackModel;
-
-    @Getter
-    @Setter
-    private Deck deck;
-
+    protected double damage;
 }

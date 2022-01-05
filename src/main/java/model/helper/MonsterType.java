@@ -8,5 +8,6 @@ public enum MonsterType {
     ORKS,
     KNIGHTS,
     KRAKEN,
-    FIREELVES
+    FIREELVES,
+    SPELL
 }
