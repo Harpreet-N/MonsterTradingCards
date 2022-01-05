@@ -3,6 +3,8 @@ package model;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
+import java.util.List;
+
 @Data
 @AllArgsConstructor
 public class UserModel {
@@ -19,19 +21,23 @@ public class UserModel {
     @JsonProperty("Password")
     private String password;
 
+    private String token;
     /**
      * Every user has 20 coins
      */
     @Getter
     @Setter
+    @JsonProperty("Balance")
     private int balance;
 
     @Getter
     @Setter
-    private StackModel stackModel;
+    @JsonProperty("StackModel")
+    private List<StackModel> stackModel;
 
     @Getter
     @Setter
-    private Deck deck;
+    @JsonProperty("Deck")
+    private List<Deck> deck;
 
 }

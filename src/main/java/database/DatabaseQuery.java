@@ -7,8 +7,11 @@ public enum DatabaseQuery {
     STORE_QUERY("CREATE TABLE store (uuid VARCHAR ( 255 ) PRIMARY KEY, offerer VARCHAR ( 255 ) NOT NULL, card_to_trade VARCHAR ( 255 ) NOT NULL, wants_monster BOOLEAN DEFAULT FALSE, wants_spell BOOLEAN DEFAULT FALSE, min_damage INTEGER DEFAULT 0)"),
 
     // DROP
-    DROP_ALL_TABLES("DROP TABLE IF EXISTS users, cards, store;");
+    DROP_ALL_TABLES("DROP TABLE IF EXISTS users, cards, store;"),
 
+    SELECT_TOKEN("SELECT token FROM users WHERE username='"),
+    SELECT_BY_USERNAME("SELECT * FROM users WHERE username='"),
+    SELECT_USERNAME("SELECT username FROM users");
 
 
     private final String query;

@@ -19,7 +19,6 @@ public class CardModel {
     @Setter
     private int damage;
 
-
     @Getter
     @Setter
     private Type elementType;
