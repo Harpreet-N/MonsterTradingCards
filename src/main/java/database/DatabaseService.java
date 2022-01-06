@@ -1,11 +1,6 @@
 package database;
-
-import model.CardModel;
 import org.apache.log4j.Logger;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
-
 public class DatabaseService {
 
     private static final Logger logger = Logger.getLogger(DatabaseService.class);

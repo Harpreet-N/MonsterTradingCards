@@ -20,4 +20,6 @@ public class Trade {
     private boolean wantsMonster;
     @JsonProperty("WantsSpell")
     private boolean wantsSpell;
+
+    Trade() {}
 }

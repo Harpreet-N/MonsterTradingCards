@@ -15,7 +15,10 @@ public class RequestHeader {
     private String method;
     private String path;
     private HashMap<String, String> getParameter = new HashMap<>();
-    private List<String> urlParameter = new ArrayList<>();
+    private List<String> url = new ArrayList<>();
+    
+    private static String splitPath = "\\?";
+    private static String equals = "=";
 
     public RequestHeader(String username, String token, String body, String method, String path) {
         this.username = username;
@@ -29,29 +32,25 @@ public class RequestHeader {
 
     private void parsePath(String path) {
         if (path.contains("?")) {
-            String allParams = path.split("\\?")[1];
-
-            urlParameter.add(path.split("\\?")[0].substring(1));
+            String allParams = path.split(splitPath)[1];
+            url.add(path.split(splitPath)[0].substring(1));
 
             if (allParams.contains("&")) {
-                List<String> keyValues = new ArrayList<String>(List.of(allParams.split("&")));
+                List<String> keyValues = new ArrayList<>(List.of(allParams.split("&")));
                 for (String pair : keyValues) {
-                    String key = pair.split("=")[0];
-                    String value = pair.split("=")[1];
+                    String key = pair.split(equals)[0];
+                    String value = pair.split(equals)[1];
 
                     getParameter.put(key, value);
                 }
             } else {
-                String key = allParams.split("=")[0];
-                String value = allParams.split("=")[1];
-
+                String key = allParams.split(equals)[0];
+                String value = allParams.split(equals)[1];
                 getParameter.put(key, value);
             }
         } else {
-            urlParameter = new ArrayList<String>(List.of(path.split("/")));
-
-            // Remove first index - is empty
-            urlParameter.remove(0);
+            url = new ArrayList<>(List.of(path.split("/")));
+            url.remove(0);
         }
     }
 

@@ -18,10 +18,28 @@ public class UserModel {
 
     @Getter
     @Setter
+    @JsonProperty("Name")
+    private String name;
+
+    @Getter
+    @Setter
     @JsonProperty("Password")
     private String password;
 
+    @Getter
+    @Setter
     private String token;
+
+    @Getter
+    @Setter
+    @JsonProperty("Bio")
+    private String bio;
+
+    @Getter
+    @Setter
+    @JsonProperty("Image")
+    private String image;
+
     /**
      * Every user has 20 coins
      */
@@ -55,6 +73,8 @@ public class UserModel {
     @JsonProperty("Looses")
     private int looses;
 
-    UserModel() {}
+    // To inital the model
+    UserModel() {
+    }
 
 }

@@ -4,13 +4,13 @@ import database.Database;
 import database.DatabaseUser;
 import http.ResponseHandler;
 import model.CardModel;
-import model.Monster;
 import model.Spell;
 import model.battle.Battle;
 import model.helper.MonsterType;
 import model.helper.Type;
 import org.apache.log4j.Logger;
-import util.CardUtil;
+import service.MonsterService;
+import service.RandomService;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -23,6 +23,9 @@ public class BattleLogic {
     private final Database dbA;
     private DatabaseUser db;
     private final ConcurrentLinkedQueue<String> battleQueue = new ConcurrentLinkedQueue<>();
+
+    private MonsterService monsterService;
+
 
     public BattleLogic(Database dbA) {
         this.dbA = dbA;
@@ -37,7 +40,7 @@ public class BattleLogic {
             String usernameTwo = battleQueue.poll();
 
             logger.info("Battle will be started: " + usernameOne + " vs " + usernameTwo);
-            rph.responseCustom("Battle will be started: " + usernameOne + " vs " + usernameTwo);
+            rph.response("Battle will be started: " + usernameOne + " vs " + usernameTwo);
 
             startBattle(rph, usernameOne, usernameTwo);
 
@@ -45,7 +48,7 @@ public class BattleLogic {
         }
 
         logger.info(username +  " added to battle queue!");
-        rph.responseCustom(username + " added to battle queue!");
+        rph.response(username + " added to battle queue!");
     }
 
     private void startBattle(ResponseHandler rph, String usernameOne, String usernameTwo) {
@@ -72,8 +75,8 @@ public class BattleLogic {
                 CardModel winnerCard = null;
                 CardModel looserCard = null;
 
-                CardModel randomCardOfUserOne = CardUtil.pickRandomCardFromDeck(copyOfDeckOne);
-                CardModel randomCardOfUserTwo = CardUtil.pickRandomCardFromDeck(copyOfDeckTwo);
+                CardModel randomCardOfUserOne = RandomService.pickRandomCardFromDeck(copyOfDeckOne);
+                CardModel randomCardOfUserTwo = RandomService.pickRandomCardFromDeck(copyOfDeckTwo);
 
                 String cardNameOne = randomCardOfUserOne.getMonsterType().name();
                 String cardNameTwo = randomCardOfUserTwo.getMonsterType().name();
@@ -83,7 +86,7 @@ public class BattleLogic {
 
                 if (!cardNameOne.equals(MonsterType.SPELL.name()) && !cardNameTwo.equals(MonsterType.SPELL.name())) {
                     Battle battle = null;
-                    battle = Monster.getWinnerOfMonsterBattle(randomCardOfUserOne, randomCardOfUserTwo);
+                    battle = monsterService.getWinnerOfMonsterBattle(randomCardOfUserOne, randomCardOfUserTwo);
 
                     String battleEndMessage = usernameOne + ": " + cardElementTypeOne + cardNameOne
                             + " (" + randomCardOfUserOne.getDamage() + " Damage) vs " + usernameTwo + ": " + cardElementTypeTwo + cardNameTwo

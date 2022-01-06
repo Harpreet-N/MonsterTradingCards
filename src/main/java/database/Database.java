@@ -3,11 +3,7 @@ package database;
 import lombok.Getter;
 import org.apache.log4j.Logger;
 
-import javax.sound.midi.SysexMessage;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 
 public class Database {
 
@@ -33,15 +29,12 @@ public class Database {
     public void connect() {
         try {
             Class.forName(DRIVER);
-
             logger.info("Connecting to DB");
-
             this.connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PW);
             this.stmt = connection.createStatement();
         } catch (SQLException | ClassNotFoundException e) {
             logger.error(e.getMessage());
         }
     }
-
 
 }
