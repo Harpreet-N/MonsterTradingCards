@@ -5,7 +5,7 @@ import model.CardModel;
 public class CalculationService {
 
     private ValidateService validateService;
-
+/*
     public int[] calculateDamage(CardModel firstCard, CardModel secondCard) {
         int[] damageArray = new int[2];
         if (firstCard.getMonsterType() != null && secondCard.getMonsterType() != null) {
@@ -25,5 +25,5 @@ public class CalculationService {
             return  card.getDamage() / 2;
         }
         return validateType != 0 ? card.getDamage() * validateType : card.getDamage();
-    }
+    } */
 }

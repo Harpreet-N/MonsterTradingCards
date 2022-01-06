@@ -40,7 +40,7 @@ public class GameTest {
     private DeckService deckService;
 
     // before nur setuo usw
-
+/*
     @BeforeEach
     @Test
     void prepareUserWithStackAndDeckTest(){

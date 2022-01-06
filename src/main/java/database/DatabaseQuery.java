@@ -2,9 +2,11 @@ package database;
 
 public enum DatabaseQuery {
     // CREATE
-    USER_QUERY("CREATE TABLE users (username VARCHAR ( 255 ) PRIMARY KEY, password VARCHAR ( 255 ) NOT NULL,  balance INTEGER DEFAULT 20, stackmodel VARCHAR ( 255 ), deck VARCHAR ( 255 )) "),
-    CARD_QUERY("CREATE TABLE cards (uuid VARCHAR ( 255 ) PRIMARY KEY, name VARCHAR ( 255 ) NULL, damage DECIMAL(5,2) NOT NULL, elementType VARCHAR ( 255 ) NOT NULL,  monsterType VARCHAR ( 255 ) NOT NULL, stackModel VARCHAR ( 255 ) NULL, deck VARCHAR ( 255 ) NULL)"),
+    USER_QUERY("CREATE TABLE users (username VARCHAR ( 255 ) PRIMARY KEY, password VARCHAR ( 255 ) NOT NULL,  token VARCHAR ( 255 ),   balance INTEGER DEFAULT 20, stackmodel VARCHAR ( 255 ), deck VARCHAR ( 255 ), elo INTEGER DEFAULT 100, wins INTEGER DEFAULT 0, looses INTEGER DEFAULT 0) "),
+    CARD_QUERY("CREATE TABLE cards (uuid VARCHAR ( 255 ) PRIMARY KEY, owner VARCHAR ( 255 ) NULL, packageId VARCHAR ( 255 ) NULL, cardtype VARCHAR ( 255 ) NOT NULL, elementtype VARCHAR ( 255 ) NOT NULL, storagetype VARCHAR ( 255 ) NOT NULL, damage DECIMAL(5,2) NOT NULL, locked BOOLEAN DEFAULT FALSE)"),
+
     STORE_QUERY("CREATE TABLE store (uuid VARCHAR ( 255 ) PRIMARY KEY, offerer VARCHAR ( 255 ) NOT NULL, card_to_trade VARCHAR ( 255 ) NOT NULL, wants_monster BOOLEAN DEFAULT FALSE, wants_spell BOOLEAN DEFAULT FALSE, min_damage INTEGER DEFAULT 0)"),
+
 
     // DROP
     DROP_ALL_TABLES("DROP TABLE IF EXISTS users, cards, store;"),
@@ -29,7 +31,7 @@ public enum DatabaseQuery {
     DELETE_TRADE_BY_UUID("DELETE FROM store WHERE uuid='"),
 
     // Elo
-    SELECT_FETCH_COINS("SELECT coins FROM users WHERE username='"),
+    SELECT_FETCH_COINS("SELECT balance FROM users WHERE username='"),
     SELECT_FETCH_ELO("SELECT elo FROM users WHERE username='");
 
 

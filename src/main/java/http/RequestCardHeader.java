@@ -14,7 +14,7 @@ public class RequestCardHeader {
     @JsonProperty("Name")
     public String name;
 
-    public String monsterType;
+    public String monstertype;
 
     public String elementtype;
 

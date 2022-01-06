@@ -10,7 +10,7 @@ public abstract class CardModel {
 
     @NonNull
     @Getter
-    protected long id;
+    protected String id;
 
     @Getter
     protected String owner;

@@ -2,12 +2,13 @@ package model.helper;
 
 public enum MonsterType {
 
-    GOBLINS,
-    DRAGONS,
+    GOBLIN,
+    DRAGON,
     WIZZARD,
-    ORKS,
-    KNIGHTS,
+    ORK,
+    KNIGHT,
     KRAKEN,
     FIREELVES,
-    SPELL
+    SPELL,
+    ELVES
 }

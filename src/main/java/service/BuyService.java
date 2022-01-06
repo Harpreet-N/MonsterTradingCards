@@ -17,7 +17,7 @@ public class BuyService {
     public void buyPackages(UserModel userModel) {
         if (userModel.getBalance() >= 5) {
             userModel.setBalance(userModel.getBalance() - 5);
-
+/*
             CardModel cardModel1 = new CardModel(5, "AA", 5, Type.FIRE, MonsterType.DRAGONS, null, null);
             CardModel cardModel2 = new CardModel(6, "Money", 10, Type.NORMAL, MonsterType.FIREELVES, null, null);
             CardModel cardModel3 = new CardModel(7, "Stack", 8, Type.WATER, MonsterType.GOBLINS, null, null);
@@ -26,7 +26,7 @@ public class BuyService {
             userModel.getStackModel().addCard(cardModel1);
             userModel.getStackModel().addCard(cardModel2);
             userModel.getStackModel().addCard(cardModel3);
-            userModel.getStackModel().addCard(cardModel4);
+            userModel.getStackModel().addCard(cardModel4); */
 
         }
     }

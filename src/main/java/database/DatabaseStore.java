@@ -20,7 +20,7 @@ public class DatabaseStore {
     public boolean decreaseCoinsByFive(String username) {
         try {
             if (userExists(username)) {
-                PreparedStatement setWinStatistics = this.connection.prepareStatement("UPDATE users SET coins=coins-5 WHERE username =?;");
+                PreparedStatement setWinStatistics = this.connection.prepareStatement("UPDATE users SET balance=balance-5 WHERE username =?;");
 
                 setWinStatistics.setString(1, username);
 

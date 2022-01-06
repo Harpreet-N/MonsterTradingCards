@@ -1,15 +1,25 @@
 package http;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import database.Database;
 import database.DatabaseUser;
+import logic.BattleLogic;
+import model.CardModel;
+import model.Monster;
+import model.Spell;
 import model.UserModel;
+import model.helper.MonsterType;
+import model.helper.Type;
+import model.store.Trade;
 import org.apache.log4j.Logger;
+import util.Authentication;
 
 import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class RequestHandler extends Thread {
@@ -20,13 +30,14 @@ public class RequestHandler extends Thread {
     private BufferedReader bufferedReader;
     private BufferedWriter bufferedWriter;
     private static final Logger logger = Logger.getLogger(RequestHandler.class);
-    //  TO-DO add battle logic
+    private final BattleLogic battleLogic;
 
     private ResponseHandler rph;
 
-    public RequestHandler(Database db, Socket clientSocket) throws IOException {
+    public RequestHandler(Database db, Socket clientSocket, BattleLogic battleLogic) throws IOException {
         this.db = db;
         this.socket = clientSocket;
+        this.battleLogic = battleLogic;
     }
 
     @Override
@@ -139,32 +150,96 @@ public class RequestHandler extends Thread {
         if (r.getMethod().equals("GET")) {
             switch (operation) {
                 case "cards":
+                    if (databaseUser.getAllCards(username).isEmpty()) {
+                        return false;
+                    }
+
+                    return rph.showAllCards(username);
+
                 case "deck":
+                    if (r.getGetParameter().containsKey("format")) {
+                        return rph.showDeckPlain(username);
+                    } else {
+                        return rph.showDeck(username);
+                    }
+
                 case "users":
+                    String userToEdit = r.getUrlParameter().get(1);
+
+                    if (userToEdit.equals(username)) {
+                        return rph.getUserData(userToEdit);
+                    }
+
                     return false;
 
                 case "stats":
+                    return rph.getStats(username);
 
                 case "score":
+                    return rph.getScoreboard();
 
                 case "tradings":
+                    return rph.getTradingDeals();
 
                 default:
                     return false;
             }
         } else {
+            // POST, PUT, DELETE ...
             switch (operation) {
                 case "packages":
+                    List<RequestCardHeader> pkgCards = objMapper.readValue(r.getBody(), new TypeReference<>() {
+                    });
+                    List<CardModel> packageToAdd = new ArrayList<>();
+
+                    for (RequestCardHeader c : pkgCards) {
+                        if (c.getMonstertype().equals("Spell")) {
+                            packageToAdd.add(new Spell(c.getId(), username, Authentication.generateAuthToken(), Type.valueOf(c.getElementtype().toUpperCase()), MonsterType.valueOf(c.getMonstertype().toUpperCase()), c.getDamage()));
+                        } else {
+                            packageToAdd.add(new Monster(c.getId(), username, Authentication.generateAuthToken(), Type.valueOf(c.getElementtype().toUpperCase()), MonsterType.valueOf(c.getMonstertype().toUpperCase()), c.getDamage()));
+                        }
+                    }
+                    return databaseUser.addPackage(packageToAdd);
 
                 case "transactions":
+                    if (r.getUrlParameter().get(1).equals("packages")) {
+                        return databaseUser.buyPackage(username);
+                    }
+                    break;
 
                 case "deck":
+                    List<String> deckCards = Arrays.asList(r.getBody().replaceAll("[\\[\\] \" ]", "" ).split("\\s*,\\s*"));
+                    return databaseUser.configureDeck(username, deckCards);
 
                 case "users":
+                    String userToEdit = r.getUrlParameter().get(1);
+                    UserModel u = objMapper.readValue(r.getBody(), UserModel.class);
+
+                    if (userToEdit.equals(r.getUsername())) {
+                        return databaseUser.editUserData(userToEdit, u.getUsername());
+                    }
+
+                    return false;
 
                 case "battles":
+                    logger.info("rein");
+                    battleLogic.queueFighter(rph, username);
+                    return true;
 
                 case "tradings":
+                    if (r.getMethod().equals("POST")) {
+                        if (r.getUrlParameter().size() == 1) {
+                            Trade t = objMapper.readValue(r.getBody(), Trade.class);
+
+                            return databaseUser.pushTradingDeal(username, t.getUuid(), t.getCardToTrade(), t.getMinDamage(), t.isWantsMonster(), t.isWantsSpell());
+                        } else {
+                            String tradeUUID = r.getUrlParameter().get(1);
+                            return databaseUser.acceptTradingDeal(username, tradeUUID, r.getBody().replace("\"", ""));
+                        }
+                    } else {
+                        String tradeUUID = r.getUrlParameter().get(1);
+                        return databaseUser.deleteTradeByUser(username, tradeUUID);
+                    }
 
                 default:
                     return false;
@@ -172,6 +247,7 @@ public class RequestHandler extends Thread {
 
         }
 
+        return true;
     }
 
     private boolean handleBodyWithoutToken(RequestHeader r) throws JsonProcessingException {

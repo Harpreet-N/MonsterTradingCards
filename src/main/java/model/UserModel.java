@@ -55,4 +55,6 @@ public class UserModel {
     @JsonProperty("Looses")
     private int looses;
 
+    UserModel() {}
+
 }

@@ -23,6 +23,36 @@ public class RequestHeader {
         this.body = body;
         this.method = method;
         this.path = path;
+
+        this.parsePath(path);
+    }
+
+    private void parsePath(String path) {
+        if (path.contains("?")) {
+            String allParams = path.split("\\?")[1];
+
+            urlParameter.add(path.split("\\?")[0].substring(1));
+
+            if (allParams.contains("&")) {
+                List<String> keyValues = new ArrayList<String>(List.of(allParams.split("&")));
+                for (String pair : keyValues) {
+                    String key = pair.split("=")[0];
+                    String value = pair.split("=")[1];
+
+                    getParameter.put(key, value);
+                }
+            } else {
+                String key = allParams.split("=")[0];
+                String value = allParams.split("=")[1];
+
+                getParameter.put(key, value);
+            }
+        } else {
+            urlParameter = new ArrayList<String>(List.of(path.split("/")));
+
+            // Remove first index - is empty
+            urlParameter.remove(0);
+        }
     }
 
 }

@@ -17,7 +17,7 @@ public class BattelLogic {
     private LogFight logFight;
 
     private DeckService deckService;
-
+/*
     public UserModel startTheGame(UserModel firstUser, UserModel secondUser) {
         for (int i = 0; i < 100; i++) {
             CardModel cardModelFirst = deckService.getCardModel(firstUser);
@@ -47,5 +47,5 @@ public class BattelLogic {
             logFight.printFightingResult(secondUser, firstUser, secondCard, firstCard, result[0], result[1]);
 
         }
-    }
+    } */
 }

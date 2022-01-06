@@ -9,6 +9,7 @@ import model.helper.Type;
 import model.store.Trade;
 import org.apache.log4j.Logger;
 import util.Authentication;
+import util.CardUtil;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -191,7 +192,7 @@ public class DatabaseUser {
 
                 rs.next();
 
-                return rs.getInt("coins");
+                return rs.getInt("balance");
             } else {
                 logger.error("Error: UserModel does not exist!");
             }
@@ -233,7 +234,7 @@ public class DatabaseUser {
     public boolean decreaseCoinsByFive(String username) {
         try {
             if (userExists(username)) {
-                PreparedStatement setWinStatistics = this.connection.prepareStatement("UPDATE users SET coins=coins-5 WHERE username =?;");
+                PreparedStatement setWinStatistics = this.connection.prepareStatement("UPDATE users SET balance=balance-5 WHERE username =?;");
                 setWinStatistics.setString(1, username);
                 setWinStatistics.executeUpdate();
 
@@ -274,7 +275,7 @@ public class DatabaseUser {
         if (rs.getString("cardtype").equals(MonsterType.SPELL.name())) {
             // CardModel is spell
             c = new Spell(
-                    rs.getLong("uuid"),
+                    rs.getString("uuid"),
                     rs.getString("owner"),
                     null,
                     Type.valueOf(rs.getString("elementtype").toUpperCase()),
@@ -284,7 +285,7 @@ public class DatabaseUser {
         } else {
             // CardModel is monster
             c = new Monster(
-                    rs.getLong("uuid"),
+                    rs.getString("uuid"),
                     rs.getString("owner"),
                     null,
                     Type.valueOf(rs.getString("elementtype").toUpperCase()),
@@ -302,7 +303,7 @@ public class DatabaseUser {
                 if (rs.getString("cardtype").equalsIgnoreCase(MonsterType.SPELL.name())) {
                     // CardModel is spell
                     listOfCards.add(new Spell(
-                            rs.getLong("uuid"),
+                            rs.getString("uuid"),
                             rs.getString("owner"),
                             null,
                             Type.valueOf(rs.getString("elementtype").toUpperCase()),
@@ -312,7 +313,7 @@ public class DatabaseUser {
                 } else {
                     // CardModel is monster
                     listOfCards.add(new Monster(
-                            rs.getLong("uuid"),
+                            rs.getString("uuid"),
                             rs.getString("owner"),
                             null,
                             Type.valueOf(rs.getString("elementtype").toUpperCase()),
@@ -436,7 +437,7 @@ public class DatabaseUser {
                     PreparedStatement insertCardIntoDB = this.connection.prepareStatement("INSERT INTO cards (uuid, owner, cardtype, elementtype, storagetype, damage) VALUES(?, ?, ?, ?, ?, ?)");
 
 
-                    insertCardIntoDB.setLong(1, c.getId());
+                    insertCardIntoDB.setString(1, c.getId());
                     insertCardIntoDB.setString(2, username);
                     insertCardIntoDB.setString(3, c.getMonsterType().name());
                     insertCardIntoDB.setString(4, c.getElementType().name());
@@ -486,7 +487,7 @@ public class DatabaseUser {
             for (CardModel c : packageToAdd) {
                 PreparedStatement insertPackageIntoDB = this.connection.prepareStatement("INSERT INTO cards (uuid, packageId, cardtype, elementtype, damage, storagetype) VALUES(?, ?, ?, ?, ?, ?)");
 
-                insertPackageIntoDB.setLong(1, c.getId());
+                insertPackageIntoDB.setString(1, c.getId());
                 insertPackageIntoDB.setString(2, packageId);
                 insertPackageIntoDB.setString(3, c.getMonsterType().name());
                 insertPackageIntoDB.setString(4, c.getElementType().name());
@@ -793,18 +794,16 @@ public class DatabaseUser {
     }
 
 
-    public boolean editUserData(String userToEdit, String name, String bio, String image) {
+    public boolean editUserData(String userToEdit, String name) {
         try {
             if (this.userExists(userToEdit)) {
                 ResultSet rs = stmt.executeQuery(DatabaseQuery.SELECT_BY_USERNAME.getQuery() + userToEdit + "'");
 
                 if (rs.next()) {
                     // Insert updated name, bio and image
-                    PreparedStatement setUserData = this.connection.prepareStatement("UPDATE users SET name=?, bio=?, image=? WHERE username=? ;");
+                    PreparedStatement setUserData = this.connection.prepareStatement("UPDATE users SET name=? WHERE username=? ;");
                     setUserData.setString(1, name);
-                    setUserData.setString(2, bio);
-                    setUserData.setString(3, image);
-                    setUserData.setString(4, userToEdit);
+                    setUserData.setString(2, userToEdit);
 
                     setUserData.executeUpdate();
                     setUserData.close();
@@ -856,6 +855,66 @@ public class DatabaseUser {
             logger.error(e.getMessage());
         }
 
+        return false;
+    }
+
+    public boolean acceptTradingDeal(String username, String tradeUUID, String counterofferUUID) {
+        Trade t;
+        CardModel offer;
+        CardModel counterOffer;
+
+        try {
+            if (userExists(username) && !userPublishedTrade(username, tradeUUID) && checkIfCardExists(counterofferUUID)) {
+                counterOffer = getCardByUUID(counterofferUUID);
+                ResultSet rs = stmt.executeQuery(DatabaseQuery.SELECT_TRADE_WHERE_UUID.getQuery() + tradeUUID + "'");
+
+                if (!rs.next()) {
+                    logger.error("Trade does not exist");
+                } else {
+                    t = new Trade(
+                            rs.getString("uuid"),
+                            rs.getString("offerer"),
+                            rs.getString("card_to_trade"),
+                            rs.getInt("min_damage"),
+                            rs.getBoolean("wants_monster"),
+                            rs.getBoolean("wants_spell"));
+
+                    offer = getCardByUUID(t.getCardToTrade());
+
+                    if (counterOffer.getDamage() >= t.getMinDamage()) {
+                        if (t.isWantsSpell() && CardUtil.cardIsSpell(counterOffer)) {
+                            // Accept trade - wants spell - counter offer is spell
+                            changeOwnerOfCard(username, t.getCardToTrade());
+                            changeOwnerOfCard(offer.getOwner(), counterofferUUID);
+
+                            deleteTrade(t.getUuid());
+                            unlockCard(t.getCardToTrade());
+
+                            logger.info(username + " accepted trading deal " + tradeUUID);
+                            return true;
+                        } else if (t.isWantsMonster() && !CardUtil.cardIsSpell(counterOffer)) {
+                            changeOwnerOfCard(username, t.getCardToTrade());
+                            changeOwnerOfCard(offer.getOwner(), counterofferUUID);
+
+                            deleteTrade(t.getUuid());
+                            unlockCard(t.getCardToTrade());
+
+                            logger.info(username + " accepted trading deal " + tradeUUID);
+                            return true;
+                        } else {
+                            logger.error("CardModel type not valid please choose another card");
+                        }
+                    } else {
+                        logger.error("Counter offer lower than minimum damage");
+                    }
+                }
+
+            } else {
+                logger.error("User does not exist, user can't trade with himself or card does not exist!");
+            }
+        } catch (SQLException e) {
+            logger.error(e.getMessage());
+        }
         return false;
     }
 }

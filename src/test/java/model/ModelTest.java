@@ -30,7 +30,7 @@ public class ModelTest {
 
     @Mock
     private BuyService buyService;
-
+/*
     @Before
     public void setUp() {
         cardModel = new CardModel(1, "Monster", 20, Type.FIRE, null, null, null);
@@ -91,5 +91,5 @@ public class ModelTest {
         assertEquals(4,userModel.getStackModel().getCardModelList().size());
 
     }
-
+*/
 }
