@@ -14,23 +14,5 @@ public class Spell extends CardModel {
         super.damage = damage;
     }
 
-
-    public static boolean elementTypeIsEffective(Type one, Type two) {
-        if (one.equals(Type.FIRE) && two.equals(Type.WATER)) {
-            return false;
-        } else if (one.equals(Type.WATER) && two.equals(Type.FIRE)) {
-            return true;
-        } else if (one.equals(Type.NORMAL) && two.equals(Type.FIRE)) {
-            return false;
-        } else if (one.equals(Type.FIRE) && two.equals(Type.NORMAL)) {
-            return true;
-        } else if (one.equals(Type.NORMAL) && two.equals(Type.WATER)) {
-            return true;
-        } else if (one.equals(Type.WATER) && two.equals(Type.NORMAL)) {
-            return false;
-        }
-
-        return false;
-    }
 }
 

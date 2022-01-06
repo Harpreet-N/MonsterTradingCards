@@ -1,6 +1,4 @@
 package model;
-
-import model.battle.Battle;
 import model.helper.MonsterType;
 import model.helper.Type;
 

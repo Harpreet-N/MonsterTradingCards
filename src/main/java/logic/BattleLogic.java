@@ -9,10 +9,9 @@ import model.battle.Battle;
 import model.helper.MonsterType;
 import model.helper.Type;
 import org.apache.log4j.Logger;
+import service.ElementService;
 import service.MonsterService;
 import service.RandomService;
-
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -23,7 +22,6 @@ public class BattleLogic {
     private final Database dbA;
     private DatabaseUser db;
     private final ConcurrentLinkedQueue<String> battleQueue = new ConcurrentLinkedQueue<>();
-
     private MonsterService monsterService;
 
 
@@ -32,10 +30,10 @@ public class BattleLogic {
         db = new DatabaseUser(dbA.getStmt(), dbA.getConnection());
     }
 
-    public synchronized void queueFighter(ResponseHandler rph, String username) throws IOException {
+    public synchronized void queueFighter(ResponseHandler rph, String username) {
         battleQueue.add(username);
 
-        if ((battleQueue.size() % 2 == 0) && (battleQueue.size() != 0)) {
+        if ((battleQueue.size() % 2 == 0) && (!battleQueue.isEmpty())) {
             String usernameOne = battleQueue.poll();
             String usernameTwo = battleQueue.poll();
 
@@ -86,7 +84,7 @@ public class BattleLogic {
 
                 if (!cardNameOne.equals(MonsterType.SPELL.name()) && !cardNameTwo.equals(MonsterType.SPELL.name())) {
                     Battle battle = null;
-                    battle = monsterService.getWinnerOfMonsterBattle(randomCardOfUserOne, randomCardOfUserTwo);
+                    battle = MonsterService.getWinnerOfMonsterBattle(randomCardOfUserOne, randomCardOfUserTwo);
 
                     String battleEndMessage = usernameOne + ": " + cardElementTypeOne + cardNameOne
                             + " (" + randomCardOfUserOne.getDamage() + " Damage) vs " + usernameTwo + ": " + cardElementTypeTwo + cardNameTwo
@@ -137,11 +135,11 @@ public class BattleLogic {
 
                         this.tradeCard(copyOfDeckOne, copyOfDeckTwo, randomCardOfUserTwo);
                     } else {
-                        if (Spell.elementTypeIsEffective(randomCardOfUserOne.getElementType(), randomCardOfUserTwo.getElementType())) {
+                        if (ElementService.elementTypeIsEffective(randomCardOfUserOne.getElementType(), randomCardOfUserTwo.getElementType())) {
                             // Fire vs Water
                             damageOne = damageOne * 2;
                             damageTwo = damageTwo / 2;
-                        } else if (Spell.elementTypeIsEffective(randomCardOfUserTwo.getElementType(), randomCardOfUserOne.getElementType())) {
+                        } else if (ElementService.elementTypeIsEffective(randomCardOfUserTwo.getElementType(), randomCardOfUserOne.getElementType())) {
                             damageOne = damageOne / 2;
                             damageTwo = damageTwo * 2;
                         }
