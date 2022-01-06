@@ -113,30 +113,28 @@ public class DatabaseUser {
 
 
     public void addWin(String username) {
-        try {
-            if (userExists(username)) {
-                PreparedStatement setWinStatistics = this.connection.prepareStatement("UPDATE users SET wins=wins+1, elo=elo+3 WHERE username =?;");
+        if (userExists(username)) {
+            try (PreparedStatement setWinStatistics = this.connection.prepareStatement("UPDATE users SET wins=wins+1, elo=elo+3 WHERE username =?;");) {
                 setWinStatistics.setString(1, username);
                 setWinStatistics.executeUpdate();
-            } else {
-                logger.error("Error: UserModel does not exist!");
+            } catch (SQLException e) {
+                logger.error(e.getMessage());
             }
-        } catch (SQLException e) {
-            logger.error(e.getMessage());
+        } else {
+            logger.error("Error: UserModel does not exist!");
         }
     }
 
     public void addLoss(String username) {
-        try {
-            if (userExists(username)) {
-                PreparedStatement setLooseStatistics = this.connection.prepareStatement("UPDATE users SET looses=looses+1, elo=elo-5 WHERE username =?;");
+        if (userExists(username)) {
+            try (PreparedStatement setLooseStatistics = this.connection.prepareStatement("UPDATE users SET looses=looses+1, elo=elo-5 WHERE username =?;");) {
                 setLooseStatistics.setString(1, username);
                 setLooseStatistics.executeUpdate();
-            } else {
-                logger.error("Error: UserModel does not exist!");
+            } catch (SQLException e) {
+                logger.error(e.getMessage());
             }
-        } catch (SQLException e) {
-            logger.error(e.getMessage());
+        } else {
+            logger.error("Error: UserModel does not exist!");
         }
     }
 
@@ -145,26 +143,19 @@ public class DatabaseUser {
             do {
                 if (rs.getString("cardtype").equalsIgnoreCase(MonsterType.SPELL.name())) {
                     // CardModel is spell
-                    listOfCards.add(new Spell(
-                            rs.getString("uuid"),
-                            rs.getString("owner"),
-                            null,
+                    listOfCards.add(new Spell(rs.getString("uuid"), rs.getString("owner"), null,
                             Type.valueOf(rs.getString("elementtype").toUpperCase()),
                             MonsterType.valueOf(rs.getString("cardtype").toUpperCase()),
                             rs.getInt("damage")
                     ));
                 } else {
                     // CardModel is monster
-                    listOfCards.add(new Monster(
-                            rs.getString("uuid"),
-                            rs.getString("owner"),
-                            null,
+                    listOfCards.add(new Monster(rs.getString("uuid"), rs.getString("owner"), null,
                             Type.valueOf(rs.getString("elementtype").toUpperCase()),
                             MonsterType.valueOf(rs.getString("cardtype").toUpperCase()),
                             rs.getInt("damage")
                     ));
                 }
-
             } while (rs.next());
         }
     }
@@ -172,7 +163,6 @@ public class DatabaseUser {
     private boolean checkIfCardIsLocked(String uuid) {
         try {
             ResultSet rs = this.stmt.executeQuery(DatabaseQuery.SELECT_LOCKED_CARD.getQuery() + uuid + "'");
-
             if (!rs.next()) {
                 logger.error("CardModel not found");
             } else {
@@ -204,12 +194,11 @@ public class DatabaseUser {
 
     public int getDeckSize(String username) {
         List<CardModel> deck = getDeck(username);
-
         return deck.size();
     }
 
     public UserModel getUserData(String username) {
-        UserModel u = null;
+        UserModel userModel = null;
         try {
             if (userExists(username)) {
                 ResultSet rs = this.stmt.executeQuery(DatabaseQuery.SELECT_BY_USERNAME.getQuery() + username + "'");
@@ -236,8 +225,7 @@ public class DatabaseUser {
         } catch (SQLException e) {
             logger.error(e.getMessage());
         }
-
-        return u;
+        return userModel;
     }
 
     public boolean configureDeck(String username, List<String> deck) {
@@ -245,27 +233,25 @@ public class DatabaseUser {
             logger.error("Deck has too many or too less cards!");
             return false;
         }
-        try {
-            if (userExists(username)) {
-                for (String uuid : deck) {
-                    if (!checkIfCardIsLocked(uuid)) {
-                        PreparedStatement setPackageBuyer = this.connection.prepareStatement("UPDATE cards SET storagetype='deck' WHERE uuid=? AND owner=? ;");
+        if (userExists(username)) {
+            for (String uuid : deck) {
+                if (!checkIfCardIsLocked(uuid)) {
+                    try(PreparedStatement setPackageBuyer = this.connection.prepareStatement("UPDATE cards SET storagetype='deck' WHERE uuid=? AND owner=? ;");) {
                         setPackageBuyer.setString(1, uuid);
                         setPackageBuyer.setString(2, username);
                         setPackageBuyer.executeUpdate();
-                    } else {
-                        logger.error("Cannot add card - is locked");
-                        return false;
+                    } catch (SQLException e) {
+                        logger.error(e.getMessage());
                     }
+                } else {
+                    logger.error("Cannot add card - is locked");
+                    return false;
                 }
-
-                logger.info(username + " configured a deck!");
-                return true;
-            } else {
-                logger.error("UserModel does not exist!");
             }
-        } catch (SQLException e) {
-            logger.error(e.getMessage());
+            logger.info(username + " configured a deck!");
+            return true;
+        } else {
+            logger.error("UserModel does not exist!");
         }
         return false;
     }
@@ -289,26 +275,22 @@ public class DatabaseUser {
     public boolean addPackage(List<CardModel> packageToAdd) {
         String packageId = AuthenticationService.generateAuthToken();
 
-        try {
-            for (CardModel c : packageToAdd) {
-                PreparedStatement insertPackageIntoDB = this.connection.prepareStatement("INSERT INTO cards (uuid, packageId, cardtype, elementtype, damage, storagetype) VALUES(?, ?, ?, ?, ?, ?)");
-
+        for (CardModel c : packageToAdd) {
+            try (PreparedStatement insertPackageIntoDB = this.connection.prepareStatement("INSERT INTO cards (uuid, packageId, cardtype, elementtype, damage, storagetype) VALUES(?, ?, ?, ?, ?, ?)");){
                 insertPackageIntoDB.setString(1, c.getId());
                 insertPackageIntoDB.setString(2, packageId);
                 insertPackageIntoDB.setString(3, c.getMonsterType().name());
                 insertPackageIntoDB.setString(4, c.getElementType().name());
                 insertPackageIntoDB.setDouble(5, c.getDamage());
                 insertPackageIntoDB.setString(6, "package");
-
                 insertPackageIntoDB.executeUpdate();
+
+                logger.info("Added package " + packageId + " to DB");
+                return true;
+            }  catch (SQLException e) {
+                logger.error(e.getMessage());
             }
-
-            logger.info("Added package " + packageId + " to DB");
-            return true;
-        } catch (SQLException e) {
-            logger.error(e.getMessage());
         }
-
         return false;
     }
 
@@ -360,14 +342,15 @@ public class DatabaseUser {
 
                 if (rs.next()) {
                     // Insert updated name, bio and image
-                    PreparedStatement setUserData = this.connection.prepareStatement("UPDATE users SET name=?, bio=?, image=? WHERE username=? ;");
-                    setUserData.setString(1, name);
-                    setUserData.setString(2, bio);
-                    setUserData.setString(3, image);
-                    setUserData.setString(4, userToEdit);
-
-                    setUserData.executeUpdate();
-                    setUserData.close();
+                    try (PreparedStatement setUserData = this.connection.prepareStatement("UPDATE users SET name=?, bio=?, image=? WHERE username=? ;");) {
+                        setUserData.setString(1, name);
+                        setUserData.setString(2, bio);
+                        setUserData.setString(3, image);
+                        setUserData.setString(4, userToEdit);
+                        setUserData.executeUpdate();
+                    } catch (SQLException e) {
+                        logger.error(e.getMessage());
+                    }
 
                     logger.info(userToEdit + " has changed his user data!");
                 } else {
@@ -398,7 +381,6 @@ public class DatabaseUser {
         } catch (SQLException e) {
             logger.error(e.getMessage());
         }
-
         return false;
     }
 }

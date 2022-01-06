@@ -147,7 +147,7 @@ public class ResponseHandler {
         try {
             bufferedWriter.write(HTTP_OK);
             bufferedWriter.write(HTTP_CONTENT_TYPE);
-            bufferedWriter.write(databaseStore.retrieveAllTradingDeals().toString());
+            bufferedWriter.write(databaseStore.retrieveAllTrads().toString());
             closeBuffer();
         } catch (IOException e) {
             logger.error(e.getMessage());
