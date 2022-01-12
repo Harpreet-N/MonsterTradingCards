@@ -11,7 +11,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 
 public class ResponseHandler {
-    private final Database db;
+    private Database db;
     private DatabaseUser databaseUser;
     private DatabaseStore databaseStore;
     private final BufferedWriter bufferedWriter;
@@ -130,7 +130,7 @@ public class ResponseHandler {
     public boolean getUserData(String userToEdit) {
         try {
             UserModel u = databaseUser.getUserData(userToEdit);
-            String userData = "\r\nName: " + u.getName() + ", Bio: " + u.getBio() + ", Image: " + u.getImage();
+            String userData = "\r\nName: " + u.getUsername() + ", Bio: " + u.getBio() + ", Image: " + u.getImage();
 
             bufferedWriter.write(HTTP_OK);
             bufferedWriter.write(HTTP_CONTENT_TYPE);

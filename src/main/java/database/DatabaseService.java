@@ -5,11 +5,9 @@ public class DatabaseService {
 
     private static final Logger logger = Logger.getLogger(DatabaseService.class);
     private final Statement stmt;
-    private final Connection connection;
 
-    public DatabaseService(Statement stmt, Connection connection) {
+    public DatabaseService(Statement stmt) {
         this.stmt = stmt;
-        this.connection = connection;
     }
 
     public void createTable() {

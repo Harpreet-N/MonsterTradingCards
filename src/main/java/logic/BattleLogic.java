@@ -4,25 +4,27 @@ import database.Database;
 import database.DatabaseUser;
 import http.ResponseHandler;
 import model.CardModel;
-import model.Spell;
-import model.battle.Battle;
+import model.battle.BattleResult;
 import model.helper.MonsterType;
 import model.helper.Type;
 import org.apache.log4j.Logger;
 import service.ElementService;
 import service.MonsterService;
 import service.RandomService;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class BattleLogic {
-    
+
     private static final Logger logger = Logger.getLogger(BattleLogic.class);
     private final Database dbA;
     private DatabaseUser db;
     private final ConcurrentLinkedQueue<String> battleQueue = new ConcurrentLinkedQueue<>();
     private MonsterService monsterService;
+    private BattleResult battle;
+    private ResponseHandler responseHandler;
 
 
     public BattleLogic(Database dbA) {
@@ -32,153 +34,142 @@ public class BattleLogic {
 
     public synchronized void queueFighter(ResponseHandler rph, String username) {
         battleQueue.add(username);
+        responseHandler = rph;
 
         if ((battleQueue.size() % 2 == 0) && (!battleQueue.isEmpty())) {
             String usernameOne = battleQueue.poll();
             String usernameTwo = battleQueue.poll();
 
-            logger.info("Battle will be started: " + usernameOne + " vs " + usernameTwo);
-            rph.response("Battle will be started: " + usernameOne + " vs " + usernameTwo);
-
-            startBattle(rph, usernameOne, usernameTwo);
-
-            return;
+            logAndRespond(" vs ", usernameOne, "Battle: ", usernameTwo, rph);
+            startBattle(usernameOne, usernameTwo);
         }
 
-        logger.info(username +  " added to battle queue!");
+        logger.info(username + " added to battle queue!");
         rph.response(username + " added to battle queue!");
     }
 
-    private void startBattle(ResponseHandler rph, String usernameOne, String usernameTwo) {
-        int MAX_ROUNDS = 100;
+    private void startBattle(String usernameOne, String usernameTwo) {
+        List<CardModel> deckOne = new ArrayList<>(db.getDeck(usernameOne));
+        List<CardModel> deckTwo = new ArrayList<>(db.getDeck(usernameTwo));
 
-        if (db.getDeckSize(usernameOne) != 4 && db.getDeckSize(usernameTwo) != 4) {
-            logger.error("Deck has more or less than 4 cards.");
-            return;
-        }
-
-        List<CardModel> copyOfDeckOne = new ArrayList<>(db.getDeck(usernameOne));
-        List<CardModel> copyOfDeckTwo = new ArrayList<>(db.getDeck(usernameTwo));
-
-        for (int i = 0; i < MAX_ROUNDS; i++) {
-            if (copyOfDeckTwo.isEmpty()) {
+        for (int i = 0; i < 100; i++) {
+            if (deckTwo.isEmpty()) {
                 logger.info(usernameOne + " won!");
+                responseHandler.response(usernameOne + " won!");
                 return;
-            } else if (copyOfDeckOne.isEmpty()) {
+            } else if (deckOne.isEmpty()) {
                 logger.info(usernameTwo + " won!");
+                responseHandler.response(usernameTwo + " won!");
                 return;
             } else {
-                System.out.print((i + 1) + ": ");
+                // Get Random Card 
+                CardModel randomCardFromUserO = RandomService.pickRandomCardFromDeck(deckOne);
+                CardModel randomCardFromUserT = RandomService.pickRandomCardFromDeck(deckTwo);
 
-                CardModel winnerCard = null;
-                CardModel looserCard = null;
+                String cardOne = randomCardFromUserO.getMonsterType().name();
+                String cardTwo = randomCardFromUserT.getMonsterType().name();
 
-                CardModel randomCardOfUserOne = RandomService.pickRandomCardFromDeck(copyOfDeckOne);
-                CardModel randomCardOfUserTwo = RandomService.pickRandomCardFromDeck(copyOfDeckTwo);
+                String elementTypeOne = randomCardFromUserO.getElementType().name();
+                String elementTypeTwo = randomCardFromUserT.getElementType().name();
 
-                String cardNameOne = randomCardOfUserOne.getMonsterType().name();
-                String cardNameTwo = randomCardOfUserTwo.getMonsterType().name();
+                if (!cardOne.equals(MonsterType.SPELL.name()) && !cardTwo.equals(MonsterType.SPELL.name())) {
+                    battle = MonsterService.getWinnerOfMonsterBattle(randomCardFromUserO, randomCardFromUserT);
 
-                String cardElementTypeOne = randomCardOfUserOne.getElementType().name();
-                String cardElementTypeTwo = randomCardOfUserTwo.getElementType().name();
+                    String battleEndMessage = usernameOne + ": " + elementTypeOne + cardOne
+                            + " (" + randomCardFromUserO.getDamage() + " Damage) vs "
+                            + usernameTwo + ": " + elementTypeTwo + cardTwo
+                            + " (" + randomCardFromUserT.getDamage() + " Damage) => ";
 
-                if (!cardNameOne.equals(MonsterType.SPELL.name()) && !cardNameTwo.equals(MonsterType.SPELL.name())) {
-                    Battle battle = null;
-                    battle = MonsterService.getWinnerOfMonsterBattle(randomCardOfUserOne, randomCardOfUserTwo);
-
-                    String battleEndMessage = usernameOne + ": " + cardElementTypeOne + cardNameOne
-                            + " (" + randomCardOfUserOne.getDamage() + " Damage) vs " + usernameTwo + ": " + cardElementTypeTwo + cardNameTwo
-                            + " (" + randomCardOfUserTwo.getDamage() + " Damage) => ";
-
-                    if (battle != null) {
-                        winnerCard = battle.getWinner();
-                        looserCard = battle.getLooser();
-
-                        if (battle.getWinner().equals(randomCardOfUserOne)) {
-                            db.addWin(usernameOne);
-                            db.addLoss(usernameTwo);
-
-                            this.tradeCard(copyOfDeckOne, copyOfDeckTwo, randomCardOfUserTwo);
-                        } else {
-                            db.addWin(usernameTwo);
-                            db.addLoss(usernameOne);
-
-                            this.tradeCard(copyOfDeckTwo, copyOfDeckOne, randomCardOfUserOne);
-                        }
-
-                        logger.info(battleEndMessage + winnerCard.getElementType().name() + winnerCard.getMonsterType().name() + " defeats " + looserCard.getElementType().name() + looserCard.getMonsterType().name());
-                    } else {
-                        logger.info(battleEndMessage + "Draw");
-                    }
+                    evaluateBattleResult(usernameOne, usernameTwo, deckOne, deckTwo, randomCardFromUserO, randomCardFromUserT, battle, battleEndMessage);
                 } else {
-                    double damageOne = randomCardOfUserOne.getDamage();
-                    double damageTwo = randomCardOfUserTwo.getDamage();
+                    double damageOne = randomCardFromUserO.getDamage();
+                    double damageTwo = randomCardFromUserT.getDamage();
 
-                    String battleEndMessage = usernameOne + ": " + cardElementTypeOne + cardNameOne + " (" + randomCardOfUserOne.getDamage() + " Damage) vs " +
-                            usernameTwo + ": " + cardElementTypeTwo + cardNameTwo + " (" + randomCardOfUserTwo.getDamage() + " Damage) => " + randomCardOfUserOne.getDamage() + " vs " + randomCardOfUserTwo.getDamage() +
+                    String battleEndMessage = usernameOne + ": " + elementTypeOne + cardOne + " (" +
+                            randomCardFromUserO.getDamage() + " Damage) vs " +
+                            usernameTwo + ": " + elementTypeTwo + cardTwo + " (" +
+                            randomCardFromUserT.getDamage() + " Damage) => " + randomCardFromUserO.getDamage() + " vs " +
+                            randomCardFromUserT.getDamage() +
                             " -> " + damageOne + " vs " + damageTwo + " => ";
 
-                    if (cardNameOne.equals(MonsterType.KNIGHT.name()) && (cardNameTwo.equals(MonsterType.SPELL.name()) && cardElementTypeTwo.equals(Type.WATER.name()))) {
-                        // Knight vs WaterSpell
-                        db.addWin(usernameTwo);
-                        db.addLoss(usernameOne);
 
-                        logger.info(battleEndMessage + randomCardOfUserTwo.getElementType().name() + randomCardOfUserTwo.getMonsterType().name() + " wins");
-
-                        this.tradeCard(copyOfDeckTwo, copyOfDeckOne, randomCardOfUserOne);
-                    } else if ((cardNameOne.equals(MonsterType.SPELL.name()) && cardElementTypeOne.equals(Type.WATER.name())) && cardNameOne.equals(MonsterType.KNIGHT.name())) {
-                        // WaterSpell vs Knight
-                        db.addWin(usernameOne);
-                        db.addLoss(usernameTwo);
-
-                        logger.info(battleEndMessage + randomCardOfUserOne.getElementType().name() + randomCardOfUserOne.getMonsterType().name() + " wins");
-
-                        this.tradeCard(copyOfDeckOne, copyOfDeckTwo, randomCardOfUserTwo);
+                    if (cardOne.equals(MonsterType.KNIGHT.name()) && elementTypeTwo.equals(Type.WATER.name())) {
+                        fightingResult(usernameOne, usernameTwo, deckOne, deckTwo, randomCardFromUserO, randomCardFromUserT, battleEndMessage);
                     } else {
-                        if (ElementService.elementTypeIsEffective(randomCardOfUserOne.getElementType(), randomCardOfUserTwo.getElementType())) {
+                        if (ElementService.elementTypeIsEffective(randomCardFromUserO.getElementType(), randomCardFromUserT.getElementType())) {
                             // Fire vs Water
                             damageOne = damageOne * 2;
                             damageTwo = damageTwo / 2;
-                        } else if (ElementService.elementTypeIsEffective(randomCardOfUserTwo.getElementType(), randomCardOfUserOne.getElementType())) {
+                        } else if (ElementService.elementTypeIsEffective(randomCardFromUserT.getElementType(), randomCardFromUserO.getElementType())) {
                             damageOne = damageOne / 2;
                             damageTwo = damageTwo * 2;
                         }
 
-                        battleEndMessage = usernameOne + ": " + cardElementTypeOne + cardNameOne + " (" + randomCardOfUserOne.getDamage() + " Damage) vs " +
-                                usernameTwo + ": " + cardElementTypeTwo + cardNameTwo + " (" + randomCardOfUserTwo.getDamage() + " Damage) => " + randomCardOfUserOne.getDamage() + " vs " + randomCardOfUserTwo.getDamage() +
+                        battleEndMessage = usernameOne + ": " + elementTypeOne + cardOne + " (" + randomCardFromUserO.getDamage() + " Damage) vs " +
+                                usernameTwo + ": " + elementTypeTwo + cardTwo + " (" + randomCardFromUserT.getDamage() + " Damage) => " + randomCardFromUserO.getDamage() + " vs " + randomCardFromUserT.getDamage() +
                                 " -> " + damageOne + " vs " + damageTwo + " => ";
 
                         if (damageOne > damageTwo) {
                             // One is winnerCard
-                            db.addWin(usernameOne);
-                            db.addLoss(usernameTwo);
+                            saveDbAndTradeCard(usernameOne, usernameTwo, deckOne, deckTwo, randomCardFromUserT);
+                            logAndRespond(cardOne, elementTypeOne, battleEndMessage, " win", responseHandler);
 
-                            logger.info(battleEndMessage + cardElementTypeOne + cardNameOne + " wins");
-
-                            this.tradeCard(copyOfDeckOne, copyOfDeckTwo, randomCardOfUserTwo);
                         } else if (damageTwo > damageOne) {
                             // Two is winnerCard
-                            db.addWin(usernameTwo);
-                            db.addLoss(usernameOne);
-
-                            logger.info(battleEndMessage + cardElementTypeTwo + cardNameTwo + " wins");
-
-                            this.tradeCard(copyOfDeckTwo, copyOfDeckOne, randomCardOfUserOne);
+                            saveDbAndTradeCard(usernameTwo, usernameOne, deckTwo, deckOne, randomCardFromUserO);
+                            logAndRespond(cardTwo, elementTypeTwo, battleEndMessage, " win", responseHandler);
                         } else {
-                            // Draw
                             logger.info(battleEndMessage + "Draw");
+                            responseHandler.response(battleEndMessage + "Draw");
                         }
                     }
                 }
             }
         }
-
         logger.info("Battle was a draw!");
+    }
+
+    private void logAndRespond(String cardOne, String elementTypeOne, String battleEndMessage, String s, ResponseHandler responseHandler) {
+        logger.info(battleEndMessage + elementTypeOne + cardOne + s);
+        responseHandler.response(battleEndMessage + elementTypeOne + cardOne + s);
+    }
+
+    private void fightingResult(String usernameOne, String usernameTwo, List<CardModel> deckOne, List<CardModel> deckTwo, CardModel randomCardFromUserO, CardModel randomCardFromUserT, String battleEndMessage) {
+        db.addWin(usernameTwo);
+        db.addLoss(usernameOne);
+        this.tradeCard(deckTwo, deckOne, randomCardFromUserO);
+
+        logger.info(battleEndMessage);
+        responseHandler.response(battleEndMessage);
+    }
+
+    private void evaluateBattleResult(String usernameOne, String usernameTwo, List<CardModel> deckOne, List<CardModel> deckTwo, CardModel randomCardFromUserO, CardModel randomCardFromUserT, BattleResult battle, String battleEndMessage) {
+        if (battle != null) {
+            CardModel winner = battle.getWinner();
+            CardModel looser = battle.getLooser();
+            if (winner.equals(randomCardFromUserO)) {
+                saveDbAndTradeCard(usernameOne, usernameTwo, deckOne, deckTwo, randomCardFromUserT);
+            } else {
+                saveDbAndTradeCard(usernameTwo, usernameOne, deckTwo, deckOne, randomCardFromUserO);
+            }
+            logger.info(battleEndMessage + winner.getElementType().name() + winner.getMonsterType().name() + " defeats " + looser.getElementType().name() + looser.getMonsterType().name());
+            responseHandler.response(battleEndMessage + winner.getElementType().name() + winner.getMonsterType().name() + " defeats " + looser.getElementType().name() + looser.getMonsterType().name());
+        } else {
+            logger.info(battleEndMessage + "Draw");
+            responseHandler.response(battleEndMessage + "Draw");
+        }
+    }
+
+    private void saveDbAndTradeCard(String winUser, String loseUser, List<CardModel> winnerDeck, List<CardModel> looserDeck, CardModel randomCardFromLoser) {
+        db.addWin(winUser);
+        db.addLoss(loseUser);
+        this.tradeCard(winnerDeck, looserDeck, randomCardFromLoser);
     }
 
     private void tradeCard(List<CardModel> winnerDeck, List<CardModel> looserDeck, CardModel cardToAdd) {
         if (looserDeck.isEmpty()) {
             logger.error("Looser has no cards");
+            responseHandler.response("Looser has no cards");
         } else {
             for (CardModel deckCard : looserDeck) {
                 if (deckCard.equals(cardToAdd)) {
