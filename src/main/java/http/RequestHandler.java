@@ -16,6 +16,7 @@ import model.helper.Type;
 import model.store.Trade;
 import org.apache.log4j.Logger;
 import service.AuthenticationService;
+import service.RandomService;
 
 import java.io.*;
 import java.net.Socket;
@@ -57,38 +58,12 @@ public class RequestHandler extends Thread {
         }
 
         this.handler = new ResponseHandler(db, bufferedWriter);
-
-        int length = 0;
-        String line;
         StringBuilder sbHeader = new StringBuilder();
         StringBuilder sbBody = new StringBuilder();
 
         try {
-            // Format Header
-            while ((line = bufferedReader.readLine()) != null) {
-                if (line.isEmpty()) {
-                    break;
-                }
-
-                if (line.startsWith("Content-Length")) {
-                    int index = line.indexOf(':') + 1;
-                    String len = line.substring(index).trim();
-                    length = Integer.parseInt(len);
-                }
-
-                sbHeader.append(line).append("\r\n");
-            }
-
-            //  Format Body
-            if (length > 0) {
-                int read;
-                while ((read = bufferedReader.read()) != -1) {
-                    sbBody.append((char) read);
-                    if (sbBody.length() == length) {
-                        break;
-                    }
-                }
-            }
+            int length = formatHeader(0, sbHeader);
+            formatBody(length, sbBody);
 
             // Handle parsed header and body
             if (handleRequest(sbHeader, sbBody)) {
@@ -101,6 +76,34 @@ public class RequestHandler extends Thread {
         } catch (IOException e) {
             logger.error(e.getMessage());
         }
+    }
+
+    private void formatBody(int length, StringBuilder sbBody) throws IOException {
+        if (length > 0) {
+            int read;
+            while ((read = bufferedReader.read()) != -1) {
+                sbBody.append((char) read);
+                if (sbBody.length() == length) {
+                    break;
+                }
+            }
+        }
+    }
+
+    private int formatHeader(int length, StringBuilder sbHeader) throws IOException {
+        String line;
+        while ((line = bufferedReader.readLine()) != null) {
+            if (line.isEmpty()) {
+                break;
+            }
+            if (line.startsWith("Content-Length")) {
+                int index = line.indexOf(':') + 1;
+                String len = line.substring(index).trim();
+                length = Integer.parseInt(len);
+            }
+            sbHeader.append(line).append("\r\n");
+        }
+        return length;
     }
 
     private void initialDb() {
@@ -210,10 +213,12 @@ public class RequestHandler extends Thread {
                     List<CardModel> packageToAdd = new ArrayList<>();
 
                     for (RequestCardHeader c : pkgCards) {
-                        if (c.getMonstertype().equals("Spell")) {
-                            packageToAdd.add(new Spell(c.getId(), username, AuthenticationService.generateAuthToken(), Type.valueOf(c.getElementtype().toUpperCase()), MonsterType.valueOf(c.getMonstertype().toUpperCase()), c.getDamage()));
+                        if (c.getName().contains("Spell")) {
+                            getSpellAndType(c);
+                            packageToAdd.add(new Spell(c.getId(), username, AuthenticationService.generateAuthToken(), c.getElementtype(), c.getMonstertype(), c.getDamage()));
                         } else {
-                            packageToAdd.add(new Monster(c.getId(), username, AuthenticationService.generateAuthToken(), Type.valueOf(c.getElementtype().toUpperCase()), MonsterType.valueOf(c.getMonstertype().toUpperCase()), c.getDamage()));
+                            getElementsAndMonster(c);
+                            packageToAdd.add(new Monster(c.getId(), username, AuthenticationService.generateAuthToken(), c.getElementtype(), c.getMonstertype(), c.getDamage()));
                         }
                     }
                     return databaseUser.addPackage(packageToAdd);
@@ -265,6 +270,27 @@ public class RequestHandler extends Thread {
             logger.error(e.getMessage());
         }
         return true;
+    }
+
+    private void getElementsAndMonster(RequestCardHeader c) {
+        for(MonsterType type: MonsterType.values()){
+            if(c.getName().toUpperCase().contains(type.name())) {
+                c.setMonstertype(type);
+            }
+        }
+
+        if(c.getElementtype() == null) {
+            c.setElementtype(RandomService.getRandomType());
+        }
+    }
+
+    private void getSpellAndType(RequestCardHeader c) {
+        for(Type type: Type.values()){
+            if(c.getName().split(type.name()).length >= 1) {
+                c.setElementtype(type);
+                c.setMonstertype(MonsterType.SPELL);
+            }
+        }
     }
 
     private boolean handleBodyWithoutToken(RequestHeader r) throws JsonProcessingException {
