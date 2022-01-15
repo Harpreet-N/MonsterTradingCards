@@ -12,6 +12,4 @@ public class Monster extends CardModel {
         super.monsterType = monsterType;
         super.damage = damage;
     }
-
-
 }

@@ -66,27 +66,24 @@ public class DatabaseUser implements UserDtoRepository {
 
     @Override
     public boolean compareExchangeToken(String username, String token) {
-        try {
-            if (userExists(username)) {
-                ResultSet rs = stmt.executeQuery(DatabaseQuery.SELECT_TOKEN.getQuery() + username + "'");
-
-                if (rs.next()) {
-                    if (rs.getString("token").equals(token)) {
-                        return true;
-                    }
-                } else {
-                    return false;
+        try (PreparedStatement ps = this.connection.prepareStatement("SELECT token FROM users WHERE username= ? ;");) {
+            ps.setString(1, username);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                if (rs.getString("token").equals(token)) {
+                    return true;
                 }
             } else {
                 return false;
             }
+            rs.close();
         } catch (SQLException e) {
             logger.error(e.getMessage());
         }
-
         return false;
     }
 
+    // Sql
     @Override
     public UserModel loginUser(String username, String password) {
         String exchangeToken = "mtcgToken";
@@ -136,6 +133,8 @@ public class DatabaseUser implements UserDtoRepository {
     }
 
 
+    /// Sql Inject
+    // Service auslagen
     public void addWin(String username) {
         if (userExists(username)) {
             try (PreparedStatement setWinStatistics = this.connection.prepareStatement("UPDATE users SET wins=wins+1, elo=elo+3 WHERE username =?;");) {
@@ -149,6 +148,8 @@ public class DatabaseUser implements UserDtoRepository {
         }
     }
 
+    /// Sql Inject
+    // Service auslagen
     public void addLoss(String username) {
         if (userExists(username)) {
             try (PreparedStatement setLooseStatistics = this.connection.prepareStatement("UPDATE users SET looses=looses+1, elo=elo-5 WHERE username =?;");) {
@@ -161,7 +162,6 @@ public class DatabaseUser implements UserDtoRepository {
             logger.error("Error: UserModel does not exist!");
         }
     }
-
 
 
     @Override
@@ -187,6 +187,9 @@ public class DatabaseUser implements UserDtoRepository {
         }
     }
 
+
+    /// Sql Inject
+    // Service auslagen
     @Override
     public boolean checkIfCardIsLocked(String uuid) {
         try {
@@ -204,17 +207,13 @@ public class DatabaseUser implements UserDtoRepository {
         return false;
     }
 
-    // hier stimmt was nicht
     @Override
     public List<CardModel> getDeck(String username) {
         List<CardModel> userDeck = new ArrayList<>();
-        try {
-            if (userExists(username)) {
-                ResultSet rs = this.stmt.executeQuery(DatabaseQuery.SELECT_FETCH_STACK_BY_USER.getQuery() + username + "'");
-                addResultSetToArray(userDeck, rs);
-            } else {
-                logger.error("UserModel does not exist!");
-            }
+        try (PreparedStatement ps = this.connection.prepareStatement(DatabaseQuery.SELECT_FETCH_STACK_BY_USER.getQuery())) {
+            ps.setString(1, username);
+            ResultSet rs = ps.executeQuery();
+            addResultSetToArray(userDeck, rs);
         } catch (SQLException e) {
             logger.error(e.getMessage());
         }
@@ -222,11 +221,8 @@ public class DatabaseUser implements UserDtoRepository {
         return userDeck;
     }
 
-    public int getDeckSize(String username) {
-        List<CardModel> deck = getDeck(username);
-        return deck.size();
-    }
-
+    /// Sql Inject
+    // Service auslagen
     @Override
     public UserModel getUserData(String username) {
         UserModel userModel = null;
@@ -268,7 +264,7 @@ public class DatabaseUser implements UserDtoRepository {
         if (userExists(username)) {
             for (String uuid : deck) {
                 if (!checkIfCardIsLocked(uuid)) {
-                    try(PreparedStatement setPackageBuyer = this.connection.prepareStatement("UPDATE cards SET storagetype='deck' WHERE uuid=? AND owner=? ;");) {
+                    try (PreparedStatement setPackageBuyer = this.connection.prepareStatement("UPDATE cards SET storagetype='deck' WHERE uuid=? AND owner=? ;");) {
                         setPackageBuyer.setString(1, uuid);
                         setPackageBuyer.setString(2, username);
                         setPackageBuyer.executeUpdate();
@@ -291,14 +287,10 @@ public class DatabaseUser implements UserDtoRepository {
     @Override
     public List<CardModel> getStack(String username) {
         List<CardModel> userStack = new ArrayList<>();
-        try {
-            if (userExists(username)) {
-                ResultSet rs = this.stmt.executeQuery(DatabaseQuery.SELECT_FETCH_STACK_BY_USER.getQuery() + username + "'");
-
-                addResultSetToArray(userStack, rs);
-            } else {
-                logger.error("Error: UserModel does not exist!");
-            }
+        try (PreparedStatement ps = this.connection.prepareStatement(DatabaseQuery.SELECT_FETCH_STACK_BY_USER.getQuery())) {
+            ps.setString(1, username);
+            ResultSet rs = ps.executeQuery();
+            addResultSetToArray(userStack, rs);
         } catch (SQLException e) {
             logger.error(e.getMessage());
         }
@@ -308,9 +300,8 @@ public class DatabaseUser implements UserDtoRepository {
     @Override
     public boolean addPackage(List<CardModel> packageToAdd) {
         String packageId = AuthenticationService.generateAuthToken();
-
         for (CardModel c : packageToAdd) {
-            try (PreparedStatement insertPackageIntoDB = this.connection.prepareStatement("INSERT INTO cards (uuid, packageId, cardtype, elementtype, damage, storagetype) VALUES(?, ?, ?, ?, ?, ?)");){
+            try (PreparedStatement insertPackageIntoDB = this.connection.prepareStatement("INSERT INTO cards (uuid, packageId, cardtype, elementtype, damage, storagetype) VALUES(?, ?, ?, ?, ?, ?)");) {
                 insertPackageIntoDB.setString(1, c.getId());
                 insertPackageIntoDB.setString(2, packageId);
                 insertPackageIntoDB.setString(3, c.getMonsterType().name());
@@ -319,7 +310,7 @@ public class DatabaseUser implements UserDtoRepository {
                 insertPackageIntoDB.setString(6, "package");
                 insertPackageIntoDB.executeUpdate();
                 logger.info("Added package " + packageId + " to DB");
-            }  catch (SQLException e) {
+            } catch (SQLException e) {
                 logger.error(e.getMessage());
             }
         }
@@ -330,7 +321,6 @@ public class DatabaseUser implements UserDtoRepository {
     public List<CardModel> getAllCards(String username) {
         List<CardModel> allCards = new ArrayList<>(getStack(username));
         allCards.addAll(getDeck(username));
-
         return allCards;
     }
 
@@ -368,14 +358,10 @@ public class DatabaseUser implements UserDtoRepository {
         return sb;
     }
 
-
-
-
     @Override
     public boolean userExists(String username) {
         try {
             ResultSet rs = this.stmt.executeQuery(DatabaseQuery.SELECT_USERNAME.getQuery());
-
             if (rs.next()) {
                 do {
                     if (rs.getString("username").equals(username)) {

@@ -13,6 +13,5 @@ public class Spell extends CardModel {
         super.monsterType = monsterType;
         super.damage = damage;
     }
-
 }
 

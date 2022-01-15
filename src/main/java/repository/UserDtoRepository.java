@@ -15,6 +15,7 @@ public interface UserDtoRepository {
     UserModel getUserData(String username);
 
 
+    // Only CRUD Methods
 
     // im Service Class
     boolean userExists(String username);
@@ -28,7 +29,6 @@ public interface UserDtoRepository {
     boolean checkIfCardIsLocked(String uuid);
 
     List<CardModel> getDeck(String username);
-
 
     boolean configureDeck(String username, List<String> deck);
 

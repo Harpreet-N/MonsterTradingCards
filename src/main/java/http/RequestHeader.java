@@ -8,7 +8,6 @@ import java.util.List;
 
 @Data
 public class RequestHeader {
-
     private String username;
     private String token;
     private String body;
@@ -16,7 +15,7 @@ public class RequestHeader {
     private String path;
     private HashMap<String, String> getParameter = new HashMap<>();
     private List<String> url = new ArrayList<>();
-    
+
     private static String splitPath = "\\?";
     private static String equals = "=";
 
@@ -26,7 +25,6 @@ public class RequestHeader {
         this.body = body;
         this.method = method;
         this.path = path;
-
         this.parsePath(path);
     }
 

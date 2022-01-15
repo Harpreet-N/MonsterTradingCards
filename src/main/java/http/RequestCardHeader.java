@@ -3,7 +3,6 @@ package http;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
-import model.Monster;
 import model.helper.MonsterType;
 import model.helper.Type;
 

@@ -21,6 +21,9 @@ public class ResponseHandler {
     private static String HTTP_OK = "HTTP/1.1 200 OK\r\n";
     private static String HTTP_CONTENT_TYPE = "ContentType: text/html\r\n";
 
+    // Add header to
+    // Wie in der Präsentation gesagt wurde
+
     public ResponseHandler(Database db, BufferedWriter bufferedWriter) {
         this.db = db;
         this.bufferedWriter = bufferedWriter;

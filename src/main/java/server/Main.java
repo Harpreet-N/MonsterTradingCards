@@ -7,8 +7,6 @@ import database.DatabaseUser;
 import http.RequestHandler;
 import logic.BattleLogic;
 import org.apache.log4j.Logger;
-import repository.UserDtoRepository;
-import service.UserService;
 
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -22,7 +20,7 @@ public class Main {
     private static Statement stmt;
 
 
-    public static void main(String[] args){
+    public static void main(String[] args) {
         // Create Database
         final Database db = new Database();
         db.connect();
@@ -40,11 +38,8 @@ public class Main {
         // Create DatabaseUser
         final DatabaseUser databaseUser = new DatabaseUser(stmt, connection);
 
-
         // Create BattleLogic
         final BattleLogic battleLogic = new BattleLogic(db);
-
-
 
         try (ServerSocket serverSocket = new ServerSocket(10001, 5)) {
             logger.info("Sever started...");

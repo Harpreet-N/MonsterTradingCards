@@ -15,7 +15,6 @@ import model.helper.MonsterType;
 import model.helper.Type;
 import model.store.Trade;
 import org.apache.log4j.Logger;
-import repository.UserDtoRepository;
 import service.AuthenticationService;
 import service.RandomService;
 
@@ -109,9 +108,7 @@ public class RequestHandler extends Thread {
     }
 
 
-
-
-    public boolean handleRequest(StringBuilder sbHeader, StringBuilder sbBody)  {
+    public boolean handleRequest(StringBuilder sbHeader, StringBuilder sbBody) {
         // Parse header
         String request = sbHeader.toString();
         String[] requestsLines = request.split("\r\n");
@@ -120,40 +117,32 @@ public class RequestHandler extends Thread {
         String path = requestLine[1];
         String username = "";
         String token = "";
-        boolean noError = false;
+        boolean noError;
 
-        try {
-            List<String> headers = new ArrayList<>();
-            for (int h = 2; h < requestsLines.length; h++) {
-                String header = requestsLines[h];
-
-                if (header.startsWith("Authorization")) {
-                    String splitUsername = header.split(" ")[2];
-                    username = splitUsername.split("-")[0];
-                    token = splitUsername.split("-")[1];
-                }
-
-                headers.add(header);
+        List<String> headers = new ArrayList<>();
+        for (int h = 2; h < requestsLines.length; h++) {
+            String header = requestsLines[h];
+            if (header.startsWith("Authorization")) {
+                String splitUsername = header.split(" ")[2];
+                username = splitUsername.split("-")[0];
+                token = splitUsername.split("-")[1];
             }
-
-            RequestHeader r = new RequestHeader(username, token, sbBody.toString(), method, path);
-
-            if (username.isEmpty() && token.isEmpty()) {
-                noError = this.handleBodyWithoutToken(r);
-            } else {
-                noError = this.handleBodyWithToken(r);
-            }
-
-
-        } catch (IOException e) {
-            logger.error(e.getMessage());
+            headers.add(header);
         }
+
+        RequestHeader r = new RequestHeader(username, token, sbBody.toString(), method, path);
+
+        if (username.isEmpty() && token.isEmpty()) {
+            noError = this.handleBodyWithoutToken(r);
+        } else {
+            noError = this.handleBodyWithToken(r);
+        }
+
         return noError;
     }
 
     private boolean handleBodyWithToken(RequestHeader requestHeader) {
         String username = requestHeader.getUsername();
-
         if (!databaseUser.compareExchangeToken(username, requestHeader.getToken())) {
             logger.error("Wrong exchange token");
             return false;
@@ -166,7 +155,6 @@ public class RequestHandler extends Thread {
                     if (databaseUser.getAllCards(username).isEmpty()) {
                         return false;
                     }
-
                     return handler.showAllCards(username);
 
                 case "deck":
@@ -178,7 +166,6 @@ public class RequestHandler extends Thread {
 
                 case "users":
                     String userToEdit = requestHeader.getUrl().get(1);
-
                     if (userToEdit.equals(username)) {
                         return handler.getUserData(userToEdit);
                     }
@@ -187,13 +174,10 @@ public class RequestHandler extends Thread {
 
                 case "stats":
                     return handler.getStats(username);
-
                 case "score":
                     return handler.getScoreboard();
-
                 case "tradings":
                     return handler.getTradingDeals();
-
                 default:
                     return false;
             }
@@ -274,8 +258,8 @@ public class RequestHandler extends Thread {
     }
 
     private void getElementsAndMonster(RequestCardHeader c) {
-        for(MonsterType type: MonsterType.values()){
-            if(c.getName().toUpperCase().contains(type.name())) {
+        for (MonsterType type : MonsterType.values()) {
+            if (c.getName().toUpperCase().contains(type.name())) {
                 c.setMonstertype(type);
             }
         }
@@ -285,45 +269,46 @@ public class RequestHandler extends Thread {
     }
 
     private void getElementTyp(RequestCardHeader c) {
-        for(Type type: Type.values()){
-            if(c.getName().toUpperCase().contains(type.name())) {
+        for (Type type : Type.values()) {
+            if (c.getName().toUpperCase().contains(type.name())) {
                 c.setElementtype(type);
             }
         }
-
         setRandomElementIfNull(c);
     }
 
     private void setRandomElementIfNull(RequestCardHeader c) {
-        if(c.getElementtype() == null) {
+        if (c.getElementtype() == null) {
             c.setElementtype(RandomService.getRandomType());
         }
     }
 
     private void setRandomMonsterIfNull(RequestCardHeader c) {
-        if(c.getMonstertype() == null) {
+        if (c.getMonstertype() == null) {
             c.setMonstertype(RandomService.getRandomMonsterType());
         }
     }
 
-
-    private boolean handleBodyWithoutToken(RequestHeader r) throws JsonProcessingException {
+    private boolean handleBodyWithoutToken(RequestHeader r) {
         UserModel u;
         String body = r.getBody();
+        try {
+            switch (r.getUrl().get(0)) {
+                case "users":
+                    u = objMapper.readValue(body, UserModel.class);
+                    return databaseUser.createUser(u);
 
-        switch (r.getUrl().get(0)) {
-            case "users":
-                u = objMapper.readValue(body, UserModel.class);
-                return databaseUser.createUser(u);
+                case "sessions":
+                    u = objMapper.readValue(body, UserModel.class);
+                    UserModel loggedInUser = databaseUser.loginUser(u.getUsername(), u.getPassword());
+                    return loggedInUser != null;
 
-            case "sessions":
-                u = objMapper.readValue(body, UserModel.class);
-                UserModel loggedInUser = databaseUser.loginUser(u.getUsername(), u.getPassword());
-                return loggedInUser != null;
-
-            default:
-                return false;
+                default:
+                    return false;
+            }
+        } catch (JsonProcessingException e) {
+            logger.error(e.getMessage());
         }
+        return false;
     }
 }
-

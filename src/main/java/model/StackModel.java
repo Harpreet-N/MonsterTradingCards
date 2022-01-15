@@ -20,8 +20,4 @@ public class StackModel {
     public StackModel() {
         this.cardModelList = new ArrayList<>();
     }
-
-    public void addCard(CardModel cardModel) {
-        cardModelList.add(cardModel);
-    }
 }

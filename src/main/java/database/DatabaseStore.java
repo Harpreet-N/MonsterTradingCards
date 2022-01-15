@@ -23,6 +23,7 @@ public class DatabaseStore {
         this.connection = connection;
     }
 
+    // Auch in einer Service Classe
     public void decreaseBalance(String username) {
         try (PreparedStatement setWinStatistics = this.connection.prepareStatement("UPDATE users SET balance=balance-5 WHERE username =?;");) {
             setWinStatistics.setString(1, username);
@@ -32,6 +33,7 @@ public class DatabaseStore {
         }
     }
 
+    // Auch in einer Service Classe
     public boolean buyPackage(String username) {
         if (getCoins(username) >= 5) {
             String packageId = getLatestPackage();
@@ -70,15 +72,10 @@ public class DatabaseStore {
     }
 
     public int getCoins(String username) {
-        try {
-            if (userExists(username)) {
-                ResultSet rs = this.stmt.executeQuery(DatabaseQuery.SELECT_FETCH_COINS.getQuery() + username + "'");
-                rs.next();
-
-                return rs.getInt("balance");
-            } else {
-                logger.error("Error: User does not exist!");
-            }
+        try (PreparedStatement ps = this.connection.prepareStatement(DatabaseQuery.SELECT_FETCH_COINS.getQuery());) {
+            ps.setString(1, username);
+            ResultSet rs = ps.executeQuery();
+            return rs.getInt("balance");
         } catch (SQLException e) {
             logger.error(e.getMessage());
         }
@@ -116,8 +113,9 @@ public class DatabaseStore {
     }
 
     private boolean isCardInDeck(String uuid) {
-        try {
-            ResultSet rs = stmt.executeQuery(DatabaseQuery.SELECT_STORAGE_BY_UUID.getQuery() + uuid + "'");
+        try (PreparedStatement ps = this.connection.prepareStatement(DatabaseQuery.SELECT_STORAGE_BY_UUID.getQuery());) {
+            ps.setString(1, uuid);
+            ResultSet rs = ps.executeQuery();
             if (rs.next()) {
                 if (rs.getString("storagetype").equals("deck")) {
                     return true;
@@ -172,10 +170,13 @@ public class DatabaseStore {
         return false;
     }
 
+
+    // SQL INJECT
     private CardModel getCardByUUID(String uuid) {
         CardModel c = null;
-        try {
-            ResultSet rs = stmt.executeQuery(DatabaseQuery.SELECT_CARD_BY_UUID.getQuery() + uuid + "'");
+        try (PreparedStatement ps = this.connection.prepareStatement(DatabaseQuery.SELECT_CARD_BY_UUID.getQuery());) {
+            ps.setString(1, uuid);
+            ResultSet rs = ps.executeQuery();
             if (!rs.next()) {
                 logger.error("Card does not exist");
             } else {
@@ -212,8 +213,9 @@ public class DatabaseStore {
     }
 
     private void removeTrade(String tradeUUID) {
-        try {
-            this.stmt.executeUpdate(DatabaseQuery.DELETE_TRADE_BY_UUID.getQuery() + tradeUUID + "'");
+        try (PreparedStatement ps = this.connection.prepareStatement(DatabaseQuery.DELETE_TRADE_BY_UUID.getQuery());) {
+            ps.setString(1, tradeUUID);
+            ps.executeQuery();
         } catch (SQLException e) {
             logger.error(e.getMessage());
         }
@@ -284,6 +286,8 @@ public class DatabaseStore {
         return false;
     }
 
+
+    // SQL INJECT
     public boolean acceptTradingDeal(String username, String tradeUUID, String counterofferUUID) {
         Trade t;
         CardModel offer;
@@ -344,6 +348,8 @@ public class DatabaseStore {
         return false;
     }
 
+
+    // SQL INJECT
     public boolean deleteTradeByUser(String username, String tradeUUID) {
         try {
             if (this.userExists(username)) {

@@ -1,7 +1,6 @@
 package model.helper;
 
 public enum MonsterType {
-
     GOBLIN,
     DRAGON,
     WIZZARD,
