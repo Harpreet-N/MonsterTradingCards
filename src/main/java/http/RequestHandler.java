@@ -15,6 +15,7 @@ import model.helper.MonsterType;
 import model.helper.Type;
 import model.store.Trade;
 import org.apache.log4j.Logger;
+import repository.UserDtoRepository;
 import service.AuthenticationService;
 import service.RandomService;
 
@@ -27,8 +28,8 @@ import java.util.List;
 public class RequestHandler extends Thread {
 
     private final Database db;
-    private DatabaseUser databaseUser;
-    private DatabaseStore databaseStore;
+    private final DatabaseUser databaseUser;
+    private final DatabaseStore databaseStore;
 
     private final ObjectMapper objMapper = new ObjectMapper();
 
@@ -41,15 +42,16 @@ public class RequestHandler extends Thread {
     private ResponseHandler handler;
     private final Socket socket;
 
-    public RequestHandler(Database db, Socket clientSocket, BattleLogic battleLogic) {
+    public RequestHandler(Database db, DatabaseUser databaseUser, DatabaseStore databaseStore, Socket clientSocket, BattleLogic battleLogic) {
         this.db = db;
+        this.databaseUser = databaseUser;
+        this.databaseStore = databaseStore;
         this.socket = clientSocket;
         this.battleLogic = battleLogic;
     }
 
     @Override
     public void run() {
-        initialDb();
         try {
             this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
@@ -106,10 +108,7 @@ public class RequestHandler extends Thread {
         return length;
     }
 
-    private void initialDb() {
-        this.databaseStore = new DatabaseStore(db.getStmt(), db.getConnection());
-        this.databaseUser = new DatabaseUser(db.getStmt(), db.getConnection());
-    }
+
 
 
     public boolean handleRequest(StringBuilder sbHeader, StringBuilder sbBody)  {
@@ -214,7 +213,8 @@ public class RequestHandler extends Thread {
 
                     for (RequestCardHeader c : pkgCards) {
                         if (c.getName().contains("Spell")) {
-                            getSpellAndType(c);
+                            getElementTyp(c);
+                            c.setMonstertype(MonsterType.SPELL);
                             packageToAdd.add(new Spell(c.getId(), username, AuthenticationService.generateAuthToken(), c.getElementtype(), c.getMonstertype(), c.getDamage()));
                         } else {
                             getElementsAndMonster(c);
@@ -237,14 +237,15 @@ public class RequestHandler extends Thread {
                     String userToEdit = requestHeader.getUrl().get(1);
                     UserModel u = objMapper.readValue(requestHeader.getBody(), UserModel.class);
 
+                    u.setUsername(userToEdit);
+
                     if (userToEdit.equals(requestHeader.getUsername())) {
-                        return databaseUser.editUserData(userToEdit, u.getUsername(), u.getBio(), u.getImage());
+                        return databaseUser.editUser(u);
                     }
 
                     return false;
 
                 case "battles":
-                    logger.info("rein");
                     battleLogic.queueFighter(handler, username);
                     return true;
 
@@ -278,20 +279,33 @@ public class RequestHandler extends Thread {
                 c.setMonstertype(type);
             }
         }
+        getElementTyp(c);
+        setRandomElementIfNull(c);
+        setRandomMonsterIfNull(c);
+    }
 
+    private void getElementTyp(RequestCardHeader c) {
+        for(Type type: Type.values()){
+            if(c.getName().toUpperCase().contains(type.name())) {
+                c.setElementtype(type);
+            }
+        }
+
+        setRandomElementIfNull(c);
+    }
+
+    private void setRandomElementIfNull(RequestCardHeader c) {
         if(c.getElementtype() == null) {
             c.setElementtype(RandomService.getRandomType());
         }
     }
 
-    private void getSpellAndType(RequestCardHeader c) {
-        for(Type type: Type.values()){
-            if(c.getName().split(type.name()).length >= 1) {
-                c.setElementtype(type);
-                c.setMonstertype(MonsterType.SPELL);
-            }
+    private void setRandomMonsterIfNull(RequestCardHeader c) {
+        if(c.getMonstertype() == null) {
+            c.setMonstertype(RandomService.getRandomMonsterType());
         }
     }
+
 
     private boolean handleBodyWithoutToken(RequestHeader r) throws JsonProcessingException {
         UserModel u;
@@ -300,7 +314,7 @@ public class RequestHandler extends Thread {
         switch (r.getUrl().get(0)) {
             case "users":
                 u = objMapper.readValue(body, UserModel.class);
-                return databaseUser.createUser(u.getUsername(), u.getPassword());
+                return databaseUser.createUser(u);
 
             case "sessions":
                 u = objMapper.readValue(body, UserModel.class);

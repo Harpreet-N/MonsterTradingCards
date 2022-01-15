@@ -1,5 +1,6 @@
 package service;
 import model.CardModel;
+import model.Monster;
 import model.helper.MonsterType;
 import model.helper.Type;
 import org.apache.log4j.Logger;
@@ -19,6 +20,7 @@ public class RandomService {
         return c.getMonsterType() == MonsterType.SPELL;
     }
 
+
     public static CardModel pickRandomCardFromDeck(List<CardModel> deck) {
         try {
             Random rand = SecureRandom.getInstanceStrong();
@@ -35,6 +37,18 @@ public class RandomService {
             Random rand = SecureRandom.getInstanceStrong();
             List<Type> typeList = new ArrayList<>();
             Collections.addAll(typeList, Type.values());
+            return typeList.get(rand.nextInt(typeList.size()));
+        } catch (NoSuchAlgorithmException e) {
+            logger.info("Something went wrong");
+        }
+        return null;
+    }
+
+    public static MonsterType getRandomMonsterType() {
+        try {
+            Random rand = SecureRandom.getInstanceStrong();
+            List<MonsterType> typeList = new ArrayList<>();
+            Collections.addAll(typeList, MonsterType.values());
             return typeList.get(rand.nextInt(typeList.size()));
         } catch (NoSuchAlgorithmException e) {
             logger.info("Something went wrong");

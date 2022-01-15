@@ -10,7 +10,6 @@ public class Database {
     private final String DB_URL;
     private final String DB_USER;
     private final String DB_PW;
-    private final String DRIVER = "org.postgresql.Driver";
 
     private static final Logger logger = Logger.getLogger(Database.class);
 

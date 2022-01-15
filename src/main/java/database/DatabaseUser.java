@@ -7,13 +7,14 @@ import model.UserModel;
 import model.helper.MonsterType;
 import model.helper.Type;
 import org.apache.log4j.Logger;
+import repository.UserDtoRepository;
 import service.AuthenticationService;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DatabaseUser {
+public class DatabaseUser implements UserDtoRepository {
 
     private static final Logger logger = Logger.getLogger(DatabaseUser.class);
 
@@ -25,24 +26,45 @@ public class DatabaseUser {
         this.connection = connection;
     }
 
-    public boolean createUser(String username, String password) {
-        if (!this.userExists(username)) {
-            try (PreparedStatement registerUserStmt = this.connection.prepareStatement("INSERT INTO users (username, password) VALUES(?, ?)");) {
-                registerUserStmt.setString(1, username);
-                registerUserStmt.setString(2, AuthenticationService.hashPassword(password));
-                registerUserStmt.executeUpdate();
-
-                logger.info("UserModel was created");
-                return true;
-            } catch (SQLException e) {
-                logger.error(e.getMessage());
-            }
-        } else {
-            logger.error("Username exists.");
+    @Override
+    public boolean createUser(UserModel userModel) {
+        try (PreparedStatement registerUserStmt = this.connection.prepareStatement("INSERT INTO users (username, password) VALUES(?, ?)");) {
+            registerUserStmt.setString(1, userModel.getUsername());
+            registerUserStmt.setString(2, AuthenticationService.hashPassword(userModel.getPassword()));
+            registerUserStmt.executeUpdate();
+            logger.info("UserModel was created");
+            return true;
+        } catch (SQLException e) {
+            logger.error(e.getMessage());
         }
         return false;
     }
 
+
+    @Override
+    public boolean editUser(UserModel userModel) {
+        try (PreparedStatement setUserData = this.connection.prepareStatement
+                ("UPDATE users SET name=?, bio=?, image=?, balance=?, elo=?, wins=?, looses=? WHERE username=? ;");) {
+            setUserData.setString(1, userModel.getName());
+            setUserData.setString(2, userModel.getBio());
+            setUserData.setString(3, userModel.getImage());
+            setUserData.setInt(4, userModel.getBalance());
+            setUserData.setInt(5, userModel.getElo());
+            setUserData.setInt(6, userModel.getWins());
+            setUserData.setInt(7, userModel.getLooses());
+            setUserData.setString(8, userModel.getUsername());
+            setUserData.executeUpdate();
+
+        } catch (SQLException e) {
+            logger.error(e.getMessage());
+            return false;
+        }
+
+        logger.info(userModel.getUsername() + " has changed his user data!");
+        return true;
+    }
+
+    @Override
     public boolean compareExchangeToken(String username, String token) {
         try {
             if (userExists(username)) {
@@ -65,10 +87,12 @@ public class DatabaseUser {
         return false;
     }
 
+    @Override
     public UserModel loginUser(String username, String password) {
         String exchangeToken = "mtcgToken";
         try {
             if (this.userExists(username)) {
+                //PreparedStatement --> sql inj
                 ResultSet rs = stmt.executeQuery(DatabaseQuery.SELECT_BY_USERNAME.getQuery() + username + "'");
 
                 while (rs.next()) {
@@ -138,7 +162,10 @@ public class DatabaseUser {
         }
     }
 
-    private void addResultSetToArray(List<CardModel> listOfCards, ResultSet rs) throws SQLException {
+
+
+    @Override
+    public void addResultSetToArray(List<CardModel> listOfCards, ResultSet rs) throws SQLException {
         if (rs.next()) {
             do {
                 if (rs.getString("cardtype").equalsIgnoreCase(MonsterType.SPELL.name())) {
@@ -160,7 +187,8 @@ public class DatabaseUser {
         }
     }
 
-    private boolean checkIfCardIsLocked(String uuid) {
+    @Override
+    public boolean checkIfCardIsLocked(String uuid) {
         try {
             ResultSet rs = this.stmt.executeQuery(DatabaseQuery.SELECT_LOCKED_CARD.getQuery() + uuid + "'");
             if (!rs.next()) {
@@ -176,11 +204,13 @@ public class DatabaseUser {
         return false;
     }
 
+    // hier stimmt was nicht
+    @Override
     public List<CardModel> getDeck(String username) {
         List<CardModel> userDeck = new ArrayList<>();
         try {
             if (userExists(username)) {
-                ResultSet rs = this.stmt.executeQuery(DatabaseQuery.SELECT_FETCH_DECK_BY_USER.getQuery() + username + "'");
+                ResultSet rs = this.stmt.executeQuery(DatabaseQuery.SELECT_FETCH_STACK_BY_USER.getQuery() + username + "'");
                 addResultSetToArray(userDeck, rs);
             } else {
                 logger.error("UserModel does not exist!");
@@ -197,6 +227,7 @@ public class DatabaseUser {
         return deck.size();
     }
 
+    @Override
     public UserModel getUserData(String username) {
         UserModel userModel = null;
         try {
@@ -228,6 +259,7 @@ public class DatabaseUser {
         return userModel;
     }
 
+    @Override
     public boolean configureDeck(String username, List<String> deck) {
         if (deck.size() != 4) {
             logger.error("Deck has too many or too less cards!");
@@ -256,6 +288,7 @@ public class DatabaseUser {
         return false;
     }
 
+    @Override
     public List<CardModel> getStack(String username) {
         List<CardModel> userStack = new ArrayList<>();
         try {
@@ -272,6 +305,7 @@ public class DatabaseUser {
         return userStack;
     }
 
+    @Override
     public boolean addPackage(List<CardModel> packageToAdd) {
         String packageId = AuthenticationService.generateAuthToken();
 
@@ -284,9 +318,7 @@ public class DatabaseUser {
                 insertPackageIntoDB.setDouble(5, c.getDamage());
                 insertPackageIntoDB.setString(6, "package");
                 insertPackageIntoDB.executeUpdate();
-
                 logger.info("Added package " + packageId + " to DB");
-                return true;
             }  catch (SQLException e) {
                 logger.error(e.getMessage());
             }
@@ -294,6 +326,7 @@ public class DatabaseUser {
         return false;
     }
 
+    @Override
     public List<CardModel> getAllCards(String username) {
         List<CardModel> allCards = new ArrayList<>(getStack(username));
         allCards.addAll(getDeck(username));
@@ -335,36 +368,10 @@ public class DatabaseUser {
         return sb;
     }
 
-    public boolean editUserData(String userToEdit, String name, String bio, String image) {
-        try {
-            if (this.userExists(userToEdit)) {
-                ResultSet rs = stmt.executeQuery(DatabaseQuery.SELECT_BY_USERNAME.getQuery() + userToEdit + "'");
 
-                if (rs.next()) {
-                    // Insert updated name, bio and image
-                    try (PreparedStatement setUserData = this.connection.prepareStatement("UPDATE users SET name=?, bio=?, image=? WHERE username=? ;");) {
-                        setUserData.setString(1, name);
-                        setUserData.setString(2, bio);
-                        setUserData.setString(3, image);
-                        setUserData.setString(4, userToEdit);
-                        setUserData.executeUpdate();
-                    } catch (SQLException e) {
-                        logger.error(e.getMessage());
-                    }
 
-                    logger.info(userToEdit + " has changed his user data!");
-                } else {
-                    logger.error("ResultSet is empty!");
-                }
-            } else {
-                logger.error("UserModel does not exist.");
-            }
-        } catch (SQLException e) {
-            logger.error(e.getMessage());
-        }
-        return false;
-    }
 
+    @Override
     public boolean userExists(String username) {
         try {
             ResultSet rs = this.stmt.executeQuery(DatabaseQuery.SELECT_USERNAME.getQuery());
