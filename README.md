@@ -89,3 +89,15 @@ Leider weiß ich nicht mehr wie viel Zeit ich im Projekt investiert habe, aber v
 
 Die zusätzliche Woche die wir noch bekommen haben konnte ich nutzen, um meinen Code zu refaktorn bzw. stellen anzupassen, welche nicht schön gelöst wurden.
 
+
+
+**Lesson Learned**
+
+
+Zeit besser einteilen. Code in verschieden Klassen einteilen und Methoden dadurch ist der Code einfach später anzupassen bzw. auch leichter zu testen.
+Keine großen Methode schreiben ist beim debuggen schwerer. Und sich mehr gedanken über das Model machen weil man viele Anpassungen haben wird später. 
+Zb.: Wie ich das meine Model Klasse komplett neu bzw anderes geschrieben hab.
+
+Auch zur BattleLogic wegen wenig Zeit habe ich meine alte Logik verworfen und alles in einer Methode und Klasse gegeben aber durch die zusätzliche Zeit konnte ich meine alte Logik wieder nutzen und es besser trennen, welches das Testen dadurch viel leichter gemacht hat.
+
+
