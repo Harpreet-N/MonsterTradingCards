@@ -30,11 +30,11 @@ public class RequestHeader {
 
     private void parsePath(String path) {
         if (path.contains("?")) {
-            String allParams = path.split(splitPath)[1];
+            String params = path.split(splitPath)[1];
             url.add(path.split(splitPath)[0].substring(1));
 
-            if (allParams.contains("&")) {
-                List<String> keyValues = new ArrayList<>(List.of(allParams.split("&")));
+            if (params.contains("&")) {
+                List<String> keyValues = new ArrayList<>(List.of(params.split("&")));
                 for (String pair : keyValues) {
                     String key = pair.split(equals)[0];
                     String value = pair.split(equals)[1];
@@ -42,8 +42,8 @@ public class RequestHeader {
                     getParameter.put(key, value);
                 }
             } else {
-                String key = allParams.split(equals)[0];
-                String value = allParams.split(equals)[1];
+                String key = params.split(equals)[0];
+                String value = params.split(equals)[1];
                 getParameter.put(key, value);
             }
         } else {

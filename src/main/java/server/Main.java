@@ -12,7 +12,6 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.sql.Connection;
 import java.sql.Statement;
-
 public class Main {
 
     private static final Logger logger = Logger.getLogger(Main.class);
@@ -42,7 +41,7 @@ public class Main {
         final BattleLogic battleLogic = new BattleLogic(db);
 
         try (ServerSocket serverSocket = new ServerSocket(10001, 5)) {
-            logger.info("Sever started...");
+            logger.info("Sever is starting");
             while (true) {
                 final Socket clientSocket = serverSocket.accept();
                 final RequestHandler requestHandler = new RequestHandler(db, databaseUser, databaseStore, clientSocket, battleLogic);
@@ -50,7 +49,7 @@ public class Main {
                 requestHandler.start();
             }
         } catch (Exception e) {
-            logger.error("Server stopped: " + e.getMessage());
+            logger.error("Server is closed: " + e.getMessage());
         }
     }
 }

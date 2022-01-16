@@ -10,14 +10,19 @@ import lombok.Setter;
 public class Trade {
     @JsonProperty("Id")
     private String uuid;
+
     @Setter
-    private String offerer;
+    private String offer;
+
     @JsonProperty("CardToTrade")
     private String cardToTrade;
+
     @JsonProperty("MinimumDamage")
     private double minDamage;
+
     @JsonProperty("WantsMonster")
     private boolean wantsMonster;
+
     @JsonProperty("WantsSpell")
     private boolean wantsSpell;
 

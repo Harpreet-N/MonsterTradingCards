@@ -324,36 +324,30 @@ public class DatabaseUser implements UserDtoRepository {
         return allCards;
     }
 
-    public StringBuilder retrieveScoreboard() {
+    public StringBuilder getRank() {
         StringBuilder sb = new StringBuilder();
-        sb.append("\r\n---- ScoreBoard ----\r\n");
         int i = 1;
-
         try {
-            ResultSet rs = this.stmt.executeQuery(DatabaseQuery.SELECT_ORDER_USERS_BY_ELO.getQuery());
+            ResultSet rs = this.stmt.executeQuery("SELECT username, elo, wins, looses FROM users ORDER BY elo DESC");
 
             if (rs.next()) {
                 do {
                     sb.append(i)
-                            .append(". Platz: ")
-                            .append(rs.getString("username"))
-                            .append(" mit ")
-                            .append(+rs.getInt("elo"))
-                            .append(" Elo (")
-                            .append(rs.getInt("wins"))
-                            .append(" Wins / ")
-                            .append(rs.getInt("looses"))
-                            .append(" Looses) \r\n");
+                            .append(".Place: ").append(rs.getString("username"))
+                            .append(" with ")
+                            .append(+rs.getInt("elo")).append(" Elo Points ")
+                            .append(rs.getInt("wins")).append(" with Wins ")
+                            .append(rs.getInt("looses")).append(" and Lost \r\n");
                     i++;
                 } while (rs.next());
             } else {
-                logger.error("ResultSet is empty");
+                logger.error("something went wrong");
                 return sb;
             }
         } catch (SQLException e) {
             logger.error(e.getMessage());
         }
-        sb.append("\r\n----------------------\r\n");
+        sb.append("\r\n");
 
         return sb;
     }

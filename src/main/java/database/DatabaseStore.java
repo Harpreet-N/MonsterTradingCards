@@ -82,7 +82,7 @@ public class DatabaseStore {
         return 0;
     }
 
-    public StringBuilder retrieveAllTrads() {
+    public StringBuilder getAllTrade() {
         StringBuilder sb = new StringBuilder();
         sb.append("\r\n----  Trade ----\r\n");
 
@@ -93,7 +93,7 @@ public class DatabaseStore {
                 do {
                     sb.append(i)
                             .append(". Offerer: ")
-                            .append(rs.getString("offerer"))
+                            .append(rs.getString("offer"))
                             .append(", Card to trade: ")
                             .append(rs.getString("card_to_trade"))
                             .append(", Min Damage: ")
@@ -135,7 +135,7 @@ public class DatabaseStore {
             // Lock card
             lockCard(cardOfferUUID);
 
-            try (PreparedStatement tradingStmt = this.connection.prepareStatement("INSERT INTO store (uuid, offerer, card_to_trade, wants_monster, wants_spell, min_damage) VALUES(?, ?, ?, ?, ?, ?)");) {
+            try (PreparedStatement tradingStmt = this.connection.prepareStatement("INSERT INTO store (uuid, offer, card_to_trade, wants_monster, wants_spell, min_damage) VALUES(?, ?, ?, ?, ?, ?)");) {
                 tradingStmt.setString(1, tradeUUID);
                 tradingStmt.setString(2, username);
                 tradingStmt.setString(3, cardOfferUUID);
@@ -190,7 +190,6 @@ public class DatabaseStore {
         return c;
     }
 
-    /* DB Helper functions */
     private CardModel createCardFromResult(ResultSet rs) throws SQLException {
         CardModel c = null;
 
@@ -262,7 +261,7 @@ public class DatabaseStore {
         try {
             ResultSet rs = stmt.executeQuery(DatabaseQuery.SELECT_ALL_TRADING_DEALS.getQuery());
             while (rs.next()) {
-                if (rs.getString("offerer").equals(username) && rs.getString("uuid").equals(tradeUUID)) {
+                if (rs.getString("offer").equals(username) && rs.getString("uuid").equals(tradeUUID)) {
                     return true;
                 }
             }
@@ -303,7 +302,7 @@ public class DatabaseStore {
                 } else {
                     t = new Trade(
                             rs.getString("uuid"),
-                            rs.getString("offerer"),
+                            rs.getString("offer"),
                             rs.getString("card_to_trade"),
                             rs.getInt("min_damage"),
                             rs.getBoolean("wants_monster"),
@@ -312,7 +311,7 @@ public class DatabaseStore {
                     offer = getCardByUUID(t.getCardToTrade());
 
                     if (counterOffer.getDamage() >= t.getMinDamage()) {
-                        if (t.isWantsSpell() && RandomService.cardIsSpell(counterOffer)) {
+                        if (t.isWantsSpell() && counterOffer.getMonsterType() == MonsterType.SPELL) {
                             // Accept trade - wants spell - counter offer is spell
                             changeOwnerOfCard(username, t.getCardToTrade());
                             changeOwnerOfCard(offer.getOwner(), counterofferUUID);
@@ -322,7 +321,7 @@ public class DatabaseStore {
 
                             logger.info(username + " accepted trading deal " + tradeUUID);
                             return true;
-                        } else if (t.isWantsMonster() && !RandomService.cardIsSpell(counterOffer)) {
+                        } else if (t.isWantsMonster() && !(counterOffer.getMonsterType() == MonsterType.SPELL)) {
                             changeOwnerOfCard(username, t.getCardToTrade());
                             changeOwnerOfCard(offer.getOwner(), counterofferUUID);
 
@@ -356,10 +355,10 @@ public class DatabaseStore {
                 ResultSet rs = stmt.executeQuery(DatabaseQuery.SELECT_TRADE_WHERE_UUID.getQuery() + tradeUUID + "'");
 
                 if (rs.next()) {
-                    String offerer = rs.getString("offerer");
+                    String offer = rs.getString("offer");
                     String cardUUID = rs.getString("card_to_trade");
 
-                    if (offerer.equals(username)) {
+                    if (offer.equals(username)) {
                         removeTrade(tradeUUID);
                         unlockCard(cardUUID);
 

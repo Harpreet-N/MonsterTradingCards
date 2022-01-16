@@ -7,10 +7,6 @@ import java.sql.*;
 
 public class Database {
 
-    private final String DB_URL;
-    private final String DB_USER;
-    private final String DB_PW;
-
     private static final Logger logger = Logger.getLogger(Database.class);
 
     @Getter
@@ -20,17 +16,14 @@ public class Database {
     Statement stmt = null;
 
     public Database() {
-        this.DB_URL = "jdbc:postgresql://localhost:5432/postgres";
-        this.DB_USER = "swe1user";
-        this.DB_PW = "swe1pw";
     }
 
     public void connect() {
         try {
-            logger.info("Connecting to DB");
-            this.connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PW);
+            logger.info("Connect to DB");
+            this.connection = DriverManager.getConnection("jdbc:postgresql://localhost:5432/postgres", "swe1user", "swe1pw");
             this.stmt = connection.createStatement();
-        } catch (SQLException  e) {
+        } catch (SQLException e) {
             logger.error(e.getMessage());
         }
     }

@@ -18,11 +18,9 @@ public class ResponseHandler {
 
     private static final Logger logger = Logger.getLogger(ResponseHandler.class);
 
-    private static String HTTP_OK = "HTTP/1.1 200 OK\r\n";
-    private static String HTTP_CONTENT_TYPE = "ContentType: text/html\r\n";
-
-    // Add header to
-    // Wie in der Präsentation gesagt wurde
+    private static String HTTP_OK = "HTTP/1.1 200 OK";
+    public static final String LINE_END = "\r\n";
+    private static String HTTP_CONTENT_TYPE_JSON = "Content-Type: application/json";
 
     public ResponseHandler(Database db, BufferedWriter bufferedWriter) {
         this.db = db;
@@ -33,10 +31,11 @@ public class ResponseHandler {
 
     public void response(String message) {
         try {
-            bufferedWriter.write(HTTP_OK);
-            bufferedWriter.write(HTTP_CONTENT_TYPE);
-            bufferedWriter.write("\r\n" + message + "\r\n");
-            bufferedWriter.write("\r\n");
+            bufferedWriter.write(HTTP_OK + LINE_END);
+            bufferedWriter.write(HTTP_CONTENT_TYPE_JSON + LINE_END);
+            bufferedWriter.write("Content-Length: " + message.length() + LINE_END);
+            bufferedWriter.write(LINE_END);
+            bufferedWriter.write(message + LINE_END);
             bufferedWriter.flush();
         } catch (IOException e) {
             logger.error(e.getMessage());
@@ -46,13 +45,15 @@ public class ResponseHandler {
 
     public boolean showAllCards(String username) {
         try {
-            bufferedWriter.write(HTTP_OK);
-            bufferedWriter.write((HTTP_CONTENT_TYPE));
-            bufferedWriter.write("\r\n");
+            bufferedWriter.write(HTTP_OK + LINE_END);
+            bufferedWriter.write(HTTP_CONTENT_TYPE_JSON + LINE_END);
 
             for (CardModel c : databaseUser.getAllCards(username)) {
                 bufferedWriter.write("\r\n" + c);
             }
+            bufferedWriter.write("Connection: close" + LINE_END);
+            bufferedWriter.write(LINE_END);
+            bufferedWriter.flush();
 
             closeBuffer();
         } catch (IOException e) {
@@ -65,13 +66,15 @@ public class ResponseHandler {
 
     public boolean showDeck(String username) {
         try {
-            bufferedWriter.write(HTTP_OK);
-            bufferedWriter.write(HTTP_CONTENT_TYPE);
-            bufferedWriter.write("\r\nDeck:");
-
+            bufferedWriter.write(HTTP_OK + LINE_END);
+            bufferedWriter.write(HTTP_CONTENT_TYPE_JSON + LINE_END);
+            bufferedWriter.write("Content-Length: " + LINE_END);
+            bufferedWriter.write(LINE_END);
+            bufferedWriter.write("Deck" + LINE_END);
             for (CardModel c : databaseUser.getDeck(username)) {
                 bufferedWriter.write("\r\n" + c);
             }
+            bufferedWriter.flush();
 
             closeBuffer();
         } catch (IOException e) {
@@ -84,13 +87,15 @@ public class ResponseHandler {
 
     public boolean showDeckPlain(String username) {
         try {
-            bufferedWriter.write(HTTP_OK);
-            bufferedWriter.write(HTTP_CONTENT_TYPE);
-            bufferedWriter.write("\r\nDeck:");
+            bufferedWriter.write(HTTP_OK + LINE_END);
+            bufferedWriter.write(HTTP_CONTENT_TYPE_JSON + LINE_END);
+            bufferedWriter.write(LINE_END);
+            bufferedWriter.write("Deck" + LINE_END);
 
             for (CardModel c : databaseUser.getDeck(username)) {
-                bufferedWriter.write("\r\n" + c.getId() + ": " + c.getElementType() + c.getMonsterType() + " has damage " + c.getDamage());
+                bufferedWriter.write(LINE_END + c.getId() + ": " + c.getElementType() + c.getMonsterType() + " has the damage " + c.getDamage());
             }
+            bufferedWriter.flush();
 
             closeBuffer();
         } catch (IOException e) {
@@ -103,9 +108,10 @@ public class ResponseHandler {
 
     public boolean getScoreboard() {
         try {
-            bufferedWriter.write(HTTP_OK);
-            bufferedWriter.write(HTTP_CONTENT_TYPE);
-            bufferedWriter.write(databaseUser.retrieveScoreboard().toString());
+            bufferedWriter.write(HTTP_OK + LINE_END);
+            bufferedWriter.write(HTTP_CONTENT_TYPE_JSON + LINE_END);
+            bufferedWriter.write(LINE_END);
+            bufferedWriter.write(databaseUser.getRank().toString());
             closeBuffer();
         } catch (IOException e) {
             logger.error(e.getMessage());
@@ -116,11 +122,12 @@ public class ResponseHandler {
 
     public boolean getStats(String username) {
         try {
+            bufferedWriter.write(HTTP_OK + LINE_END);
+            bufferedWriter.write(HTTP_CONTENT_TYPE_JSON + LINE_END);
             UserModel u = databaseUser.getUserData(username);
-            String userData = "\r\nName: " + u.getUsername() + ", Wins: " + u.getWins() + ", Looses: " + u.getLooses() + ", Elo: " + u.getElo();
-
+            String userData = LINE_END + "Name: " + u.getUsername() + ", Wins: " + u.getWins() + ", Lost: " + u.getLooses() + ", Elo: " + u.getElo();
             bufferedWriter.write(HTTP_OK);
-            bufferedWriter.write(HTTP_CONTENT_TYPE);
+
             bufferedWriter.write(userData);
             closeBuffer();
         } catch (IOException e) {
@@ -132,11 +139,12 @@ public class ResponseHandler {
 
     public boolean getUserData(String userToEdit) {
         try {
-            UserModel u = databaseUser.getUserData(userToEdit);
-            String userData = "\r\nName: " + u.getUsername() + ", Bio: " + u.getBio() + ", Image: " + u.getImage();
+            bufferedWriter.write(HTTP_OK + LINE_END);
+            bufferedWriter.write(HTTP_CONTENT_TYPE_JSON + LINE_END);
 
-            bufferedWriter.write(HTTP_OK);
-            bufferedWriter.write(HTTP_CONTENT_TYPE);
+            UserModel u = databaseUser.getUserData(userToEdit);
+            String userData = LINE_END + "Name: " + u.getUsername() + ", Bio: " + u.getBio() + ", Image: " + u.getImage();
+
             bufferedWriter.write(userData);
             closeBuffer();
         } catch (IOException e) {
@@ -146,11 +154,11 @@ public class ResponseHandler {
         return true;
     }
 
-    public boolean getTradingDeals() {
+    public boolean getTrade() {
         try {
-            bufferedWriter.write(HTTP_OK);
-            bufferedWriter.write(HTTP_CONTENT_TYPE);
-            bufferedWriter.write(databaseStore.retrieveAllTrads().toString());
+            bufferedWriter.write(HTTP_OK + LINE_END);
+            bufferedWriter.write(HTTP_CONTENT_TYPE_JSON + LINE_END);
+            bufferedWriter.write(databaseStore.getAllTrade().toString());
             closeBuffer();
         } catch (IOException e) {
             logger.error(e.getMessage());
@@ -161,7 +169,7 @@ public class ResponseHandler {
 
     private void closeBuffer() {
         try {
-            bufferedWriter.write("\r\n");
+            bufferedWriter.write(LINE_END);
             bufferedWriter.flush();
         } catch (IOException e) {
             logger.error(e.getMessage());

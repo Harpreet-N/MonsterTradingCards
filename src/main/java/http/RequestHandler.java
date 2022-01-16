@@ -41,6 +41,8 @@ public class RequestHandler extends Thread {
     private ResponseHandler handler;
     private final Socket socket;
 
+    public static final String LINE_END = "\r\n";
+
     public RequestHandler(Database db, DatabaseUser databaseUser, DatabaseStore databaseStore, Socket clientSocket, BattleLogic battleLogic) {
         this.db = db;
         this.databaseUser = databaseUser;
@@ -102,7 +104,7 @@ public class RequestHandler extends Thread {
                 String len = line.substring(index).trim();
                 length = Integer.parseInt(len);
             }
-            sbHeader.append(line).append("\r\n");
+            sbHeader.append(line).append(LINE_END);
         }
         return length;
     }
@@ -111,7 +113,7 @@ public class RequestHandler extends Thread {
     public boolean handleRequest(StringBuilder sbHeader, StringBuilder sbBody) {
         // Parse header
         String request = sbHeader.toString();
-        String[] requestsLines = request.split("\r\n");
+        String[] requestsLines = request.split(LINE_END);
         String[] requestLine = requestsLines[0].split(" ");
         String method = requestLine[0];
         String path = requestLine[1];
@@ -119,7 +121,6 @@ public class RequestHandler extends Thread {
         String token = "";
         boolean noError;
 
-        List<String> headers = new ArrayList<>();
         for (int h = 2; h < requestsLines.length; h++) {
             String header = requestsLines[h];
             if (header.startsWith("Authorization")) {
@@ -127,43 +128,29 @@ public class RequestHandler extends Thread {
                 username = splitUsername.split("-")[0];
                 token = splitUsername.split("-")[1];
             }
-            headers.add(header);
         }
 
         RequestHeader r = new RequestHeader(username, token, sbBody.toString(), method, path);
 
         if (username.isEmpty() && token.isEmpty()) {
-            noError = this.handleBodyWithoutToken(r);
+            noError = this.bodyWithoutToken(r);
         } else {
-            noError = this.handleBodyWithToken(r);
+            noError = this.bodyWithToken(r);
         }
 
         return noError;
     }
 
-    private boolean handleBodyWithToken(RequestHeader requestHeader) {
+    private boolean bodyWithToken(RequestHeader requestHeader) {
         String username = requestHeader.getUsername();
         if (!databaseUser.compareExchangeToken(username, requestHeader.getToken())) {
-            logger.error("Wrong exchange token");
+            logger.error("Wrong token");
             return false;
         }
 
         String operation = requestHeader.getUrl().get(0);
         if (requestHeader.getMethod().equals("GET")) {
             switch (operation) {
-                case "cards":
-                    if (databaseUser.getAllCards(username).isEmpty()) {
-                        return false;
-                    }
-                    return handler.showAllCards(username);
-
-                case "deck":
-                    if (requestHeader.getGetParameter().containsKey("format")) {
-                        return handler.showDeckPlain(username);
-                    } else {
-                        return handler.showDeck(username);
-                    }
-
                 case "users":
                     String userToEdit = requestHeader.getUrl().get(1);
                     if (userToEdit.equals(username)) {
@@ -171,13 +158,23 @@ public class RequestHandler extends Thread {
                     }
 
                     return false;
-
+                case "cards":
+                    if (databaseUser.getAllCards(username).isEmpty()) {
+                        return false;
+                    }
+                    return handler.showAllCards(username);
+                case "deck":
+                    if (requestHeader.getGetParameter().containsKey("format")) {
+                        return handler.showDeckPlain(username);
+                    } else {
+                        return handler.showDeck(username);
+                    }
+                case "tradings":
+                    return handler.getTrade();
                 case "stats":
                     return handler.getStats(username);
                 case "score":
                     return handler.getScoreboard();
-                case "tradings":
-                    return handler.getTradingDeals();
                 default:
                     return false;
             }
@@ -190,6 +187,9 @@ public class RequestHandler extends Thread {
     private boolean handleOtherRequest(String operation, RequestHeader requestHeader, String username) {
         try {
             switch (operation) {
+                case "deck":
+                    List<String> deckCards = Arrays.asList(requestHeader.getBody().replaceAll("[\\[\\] \" ]", "").split("\\s*,\\s*"));
+                    return databaseUser.configureDeck(username, deckCards);
                 case "packages":
                     List<RequestCardHeader> pkgCards = objMapper.readValue(requestHeader.getBody(), new TypeReference<>() {
                     });
@@ -198,11 +198,11 @@ public class RequestHandler extends Thread {
                     for (RequestCardHeader c : pkgCards) {
                         if (c.getName().contains("Spell")) {
                             getElementTyp(c);
-                            c.setMonstertype(MonsterType.SPELL);
-                            packageToAdd.add(new Spell(c.getId(), username, AuthenticationService.generateAuthToken(), c.getElementtype(), c.getMonstertype(), c.getDamage()));
+                            c.setMonsterType(MonsterType.SPELL);
+                            packageToAdd.add(new Spell(c.getId(), username, AuthenticationService.generateAuthToken(), c.getElementType(), c.getMonsterType(), c.getDamage()));
                         } else {
                             getElementsAndMonster(c);
-                            packageToAdd.add(new Monster(c.getId(), username, AuthenticationService.generateAuthToken(), c.getElementtype(), c.getMonstertype(), c.getDamage()));
+                            packageToAdd.add(new Monster(c.getId(), username, AuthenticationService.generateAuthToken(), c.getElementType(), c.getMonsterType(), c.getDamage()));
                         }
                     }
                     return databaseUser.addPackage(packageToAdd);
@@ -212,10 +212,6 @@ public class RequestHandler extends Thread {
                         return databaseStore.buyPackage(username);
                     }
                     break;
-
-                case "deck":
-                    List<String> deckCards = Arrays.asList(requestHeader.getBody().replaceAll("[\\[\\] \" ]", "").split("\\s*,\\s*"));
-                    return databaseUser.configureDeck(username, deckCards);
 
                 case "users":
                     String userToEdit = requestHeader.getUrl().get(1);
@@ -228,10 +224,6 @@ public class RequestHandler extends Thread {
                     }
 
                     return false;
-
-                case "battles":
-                    battleLogic.queueFighter(handler, username);
-                    return true;
 
                 case "tradings":
                     if (requestHeader.getMethod().equals("POST")) {
@@ -247,7 +239,9 @@ public class RequestHandler extends Thread {
                         String tradeUUID = requestHeader.getUrl().get(1);
                         return databaseStore.deleteTradeByUser(username, tradeUUID);
                     }
-
+                case "battles":
+                    battleLogic.queueFighter(handler, username);
+                    return true;
                 default:
                     return false;
             }
@@ -260,7 +254,7 @@ public class RequestHandler extends Thread {
     private void getElementsAndMonster(RequestCardHeader c) {
         for (MonsterType type : MonsterType.values()) {
             if (c.getName().toUpperCase().contains(type.name())) {
-                c.setMonstertype(type);
+                c.setMonsterType(type);
             }
         }
         getElementTyp(c);
@@ -271,38 +265,45 @@ public class RequestHandler extends Thread {
     private void getElementTyp(RequestCardHeader c) {
         for (Type type : Type.values()) {
             if (c.getName().toUpperCase().contains(type.name())) {
-                c.setElementtype(type);
+                c.setElementType(type);
             }
         }
         setRandomElementIfNull(c);
     }
 
     private void setRandomElementIfNull(RequestCardHeader c) {
-        if (c.getElementtype() == null) {
-            c.setElementtype(RandomService.getRandomType());
+        if (c.getElementType() == null) {
+            c.setElementType(RandomService.getRandomType());
         }
     }
 
     private void setRandomMonsterIfNull(RequestCardHeader c) {
-        if (c.getMonstertype() == null) {
-            c.setMonstertype(RandomService.getRandomMonsterType());
+        if (c.getMonsterType() == null) {
+            c.setMonsterType(RandomService.getRandomMonsterType());
         }
     }
 
-    private boolean handleBodyWithoutToken(RequestHeader r) {
+    private boolean bodyWithoutToken(RequestHeader r) {
         UserModel u;
         String body = r.getBody();
         try {
             switch (r.getUrl().get(0)) {
-                case "users":
-                    u = objMapper.readValue(body, UserModel.class);
-                    return databaseUser.createUser(u);
-
                 case "sessions":
                     u = objMapper.readValue(body, UserModel.class);
                     UserModel loggedInUser = databaseUser.loginUser(u.getUsername(), u.getPassword());
-                    return loggedInUser != null;
-
+                    if (loggedInUser != null) {
+                        handler.response("User" + u.getUsername() + "is logged in");
+                    } else {
+                        return false;
+                    }
+                case "users":
+                    u = objMapper.readValue(body, UserModel.class);
+                    if (databaseUser.createUser(u)) {
+                        handler.response("User" + u.getUsername() + "is created");
+                        return true;
+                    } else {
+                        return false;
+                    }
                 default:
                     return false;
             }

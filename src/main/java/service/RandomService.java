@@ -1,4 +1,5 @@
 package service;
+
 import model.CardModel;
 import model.Monster;
 import model.helper.MonsterType;
@@ -16,11 +17,6 @@ public class RandomService {
 
     private static final Logger logger = Logger.getLogger(RandomService.class);
 
-    public static boolean cardIsSpell(CardModel c) {
-        return c.getMonsterType() == MonsterType.SPELL;
-    }
-
-
     public static CardModel pickRandomCardFromDeck(List<CardModel> deck) {
         try {
             Random rand = SecureRandom.getInstanceStrong();
@@ -30,7 +26,6 @@ public class RandomService {
         }
         return null;
     }
-
 
     public static Type getRandomType() {
         try {

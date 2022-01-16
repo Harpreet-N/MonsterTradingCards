@@ -16,9 +16,9 @@ public class RequestCardHeader {
     @JsonProperty("Name")
     public String name;
 
-    public MonsterType monstertype;
+    public MonsterType monsterType;
 
-    public Type elementtype;
+    public Type elementType;
 
     @JsonProperty("Damage")
     public double damage;

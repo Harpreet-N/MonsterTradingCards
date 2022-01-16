@@ -8,7 +8,6 @@ import model.helper.Type;
 public class MonsterService {
 
     public static BattleResult getWinnerOfMonsterBattle(CardModel one, CardModel two) {
-        // Return winner, if draw return null
         String monsterNameOfCardOne = one.getMonsterType().name();
         String monsterNameOfCardTwo = two.getMonsterType().name();
 
