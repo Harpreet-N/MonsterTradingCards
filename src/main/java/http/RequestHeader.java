@@ -32,23 +32,25 @@ public class RequestHeader {
         if (path.contains("?")) {
             String params = path.split(splitPath)[1];
             url.add(path.split(splitPath)[0].substring(1));
-
-            if (params.contains("&")) {
-                List<String> keyValues = new ArrayList<>(List.of(params.split("&")));
-                for (String pair : keyValues) {
-                    String key = pair.split(equals)[0];
-                    String value = pair.split(equals)[1];
-
-                    getParameter.put(key, value);
-                }
-            } else {
-                String key = params.split(equals)[0];
-                String value = params.split(equals)[1];
-                getParameter.put(key, value);
-            }
+            putPathInMap(params);
         } else {
             url = new ArrayList<>(List.of(path.split("/")));
             url.remove(0);
+        }
+    }
+
+    private void putPathInMap(String params) {
+        if (params.contains("&")) {
+            List<String> valueList = new ArrayList<>(List.of(params.split("&")));
+            for (String pair : valueList) {
+                String key = pair.split(equals)[0];
+                String value = pair.split(equals)[1];
+                getParameter.put(key, value);
+            }
+        } else {
+            String key = params.split(equals)[0];
+            String value = params.split(equals)[1];
+            getParameter.put(key, value);
         }
     }
 

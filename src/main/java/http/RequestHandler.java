@@ -16,6 +16,7 @@ import model.helper.Type;
 import model.store.Trade;
 import org.apache.log4j.Logger;
 import service.AuthenticationService;
+import service.PackageService;
 import service.RandomService;
 
 import java.io.*;
@@ -37,6 +38,7 @@ public class RequestHandler extends Thread {
 
     private static final Logger logger = Logger.getLogger(RequestHandler.class);
     private final BattleLogic battleLogic;
+    private PackageService packageService = new PackageService();
 
     private ResponseHandler handler;
     private final Socket socket;
@@ -81,19 +83,19 @@ public class RequestHandler extends Thread {
         }
     }
 
-    private void formatBody(int length, StringBuilder sbBody) throws IOException {
+    private void formatBody(int length, StringBuilder builder) throws IOException {
         if (length > 0) {
             int read;
             while ((read = bufferedReader.read()) != -1) {
-                sbBody.append((char) read);
-                if (sbBody.length() == length) {
+                builder.append((char) read);
+                if (builder.length() == length) {
                     break;
                 }
             }
         }
     }
 
-    private int formatHeader(int length, StringBuilder sbHeader) throws IOException {
+    private int formatHeader(int length, StringBuilder builder) throws IOException {
         String line;
         while ((line = bufferedReader.readLine()) != null) {
             if (line.isEmpty()) {
@@ -104,35 +106,24 @@ public class RequestHandler extends Thread {
                 String len = line.substring(index).trim();
                 length = Integer.parseInt(len);
             }
-            sbHeader.append(line).append(LINE_END);
+            builder.append(line).append(LINE_END);
         }
         return length;
     }
 
 
     public boolean handleRequest(StringBuilder sbHeader, StringBuilder sbBody) {
-        // Parse header
         String request = sbHeader.toString();
         String[] requestsLines = request.split(LINE_END);
         String[] requestLine = requestsLines[0].split(" ");
         String method = requestLine[0];
         String path = requestLine[1];
-        String username = "";
-        String token = "";
+        String[] userNameAndToken = getUserNameAndToken(requestsLines);
         boolean noError;
 
-        for (int h = 2; h < requestsLines.length; h++) {
-            String header = requestsLines[h];
-            if (header.startsWith("Authorization")) {
-                String splitUsername = header.split(" ")[2];
-                username = splitUsername.split("-")[0];
-                token = splitUsername.split("-")[1];
-            }
-        }
+        RequestHeader r = new RequestHeader(userNameAndToken[0], userNameAndToken[1], sbBody.toString(), method, path);
 
-        RequestHeader r = new RequestHeader(username, token, sbBody.toString(), method, path);
-
-        if (username.isEmpty() && token.isEmpty()) {
+        if (userNameAndToken[0].isEmpty() && userNameAndToken[1].isEmpty()) {
             noError = this.bodyWithoutToken(r);
         } else {
             noError = this.bodyWithToken(r);
@@ -141,9 +132,25 @@ public class RequestHandler extends Thread {
         return noError;
     }
 
+
+    private String[] getUserNameAndToken(String[] requestsLines) {
+        String [] userToken = new String[2];
+        for (int h = 2; h < requestsLines.length; h++) {
+            String header = requestsLines[h];
+            if (header.startsWith("Authorization")) {
+                String splitUsername = header.split(" ")[2];
+                userToken[0] = splitUsername.split("-")[0];
+                userToken[1] = splitUsername.split("-")[1];
+            }
+        }
+        userToken[0] = userToken[0] != null ? userToken[0] : "";
+        userToken[1] = userToken[1] != null ? userToken[1] : "";
+        return userToken;
+    }
+
     private boolean bodyWithToken(RequestHeader requestHeader) {
         String username = requestHeader.getUsername();
-        if (!databaseUser.compareExchangeToken(username, requestHeader.getToken())) {
+        if (requestHeader.getToken() != null && !databaseUser.compareExchangeToken(username, requestHeader.getToken())) {
             logger.error("Wrong token");
             return false;
         }
@@ -154,27 +161,26 @@ public class RequestHandler extends Thread {
                 case "users":
                     String userToEdit = requestHeader.getUrl().get(1);
                     if (userToEdit.equals(username)) {
-                        return handler.getUserData(userToEdit);
+                        return handler.respondUserData(userToEdit);
                     }
-
                     return false;
                 case "cards":
                     if (databaseUser.getAllCards(username).isEmpty()) {
                         return false;
                     }
-                    return handler.showAllCards(username);
+                    return handler.respondsAllCard(username);
                 case "deck":
                     if (requestHeader.getGetParameter().containsKey("format")) {
-                        return handler.showDeckPlain(username);
+                        return handler.respondPlainDeck(username);
                     } else {
-                        return handler.showDeck(username);
+                        return handler.respondDeck(username);
                     }
                 case "tradings":
-                    return handler.getTrade();
+                    return handler.respondTrade();
                 case "stats":
-                    return handler.getStats(username);
+                    return handler.respondStats(username);
                 case "score":
-                    return handler.getScoreboard();
+                    return handler.respondScore();
                 default:
                     return false;
             }
@@ -191,22 +197,8 @@ public class RequestHandler extends Thread {
                     List<String> deckCards = Arrays.asList(requestHeader.getBody().replaceAll("[\\[\\] \" ]", "").split("\\s*,\\s*"));
                     return databaseUser.configureDeck(username, deckCards);
                 case "packages":
-                    List<RequestCardHeader> pkgCards = objMapper.readValue(requestHeader.getBody(), new TypeReference<>() {
-                    });
-                    List<CardModel> packageToAdd = new ArrayList<>();
-
-                    for (RequestCardHeader c : pkgCards) {
-                        if (c.getName().contains("Spell")) {
-                            getElementTyp(c);
-                            c.setMonsterType(MonsterType.SPELL);
-                            packageToAdd.add(new Spell(c.getId(), username, AuthenticationService.generateAuthToken(), c.getElementType(), c.getMonsterType(), c.getDamage()));
-                        } else {
-                            getElementsAndMonster(c);
-                            packageToAdd.add(new Monster(c.getId(), username, AuthenticationService.generateAuthToken(), c.getElementType(), c.getMonsterType(), c.getDamage()));
-                        }
-                    }
-                    return databaseUser.addPackage(packageToAdd);
-
+                    List<RequestCardHeader> pkgCards = objMapper.readValue(requestHeader.getBody(), new TypeReference<>() {});
+                    return databaseUser.addPackage(packageService.createPackage(username, pkgCards));
                 case "transactions":
                     if (requestHeader.getUrl().get(1).equals("packages")) {
                         return databaseStore.buyPackage(username);
@@ -216,7 +208,6 @@ public class RequestHandler extends Thread {
                 case "users":
                     String userToEdit = requestHeader.getUrl().get(1);
                     UserModel u = objMapper.readValue(requestHeader.getBody(), UserModel.class);
-
                     u.setUsername(userToEdit);
 
                     if (userToEdit.equals(requestHeader.getUsername())) {
@@ -249,38 +240,6 @@ public class RequestHandler extends Thread {
             logger.error(e.getMessage());
         }
         return true;
-    }
-
-    private void getElementsAndMonster(RequestCardHeader c) {
-        for (MonsterType type : MonsterType.values()) {
-            if (c.getName().toUpperCase().contains(type.name())) {
-                c.setMonsterType(type);
-            }
-        }
-        getElementTyp(c);
-        setRandomElementIfNull(c);
-        setRandomMonsterIfNull(c);
-    }
-
-    private void getElementTyp(RequestCardHeader c) {
-        for (Type type : Type.values()) {
-            if (c.getName().toUpperCase().contains(type.name())) {
-                c.setElementType(type);
-            }
-        }
-        setRandomElementIfNull(c);
-    }
-
-    private void setRandomElementIfNull(RequestCardHeader c) {
-        if (c.getElementType() == null) {
-            c.setElementType(RandomService.getRandomType());
-        }
-    }
-
-    private void setRandomMonsterIfNull(RequestCardHeader c) {
-        if (c.getMonsterType() == null) {
-            c.setMonsterType(RandomService.getRandomMonsterType());
-        }
     }
 
     private boolean bodyWithoutToken(RequestHeader r) {

@@ -25,9 +25,9 @@ public class DatabaseStore {
 
     // Auch in einer Service Classe
     public void decreaseBalance(String username) {
-        try (PreparedStatement setWinStatistics = this.connection.prepareStatement("UPDATE users SET balance=balance-5 WHERE username =?;");) {
-            setWinStatistics.setString(1, username);
-            setWinStatistics.executeUpdate();
+        try (PreparedStatement stm = this.connection.prepareStatement("UPDATE users SET balance=balance-5 WHERE username =?;");) {
+            stm.setString(1, username);
+            stm.executeUpdate();
         } catch (SQLException e) {
             logger.error(e.getMessage());
         }
@@ -38,10 +38,10 @@ public class DatabaseStore {
         if (getCoins(username) >= 5) {
             String packageId = getLatestPackage();
             if (packageId != null) {
-                try (PreparedStatement setPackageBuyer = this.connection.prepareStatement("UPDATE cards SET owner=?, packageId=NULL, storagetype='stack' WHERE packageId=? ;");) {
-                    setPackageBuyer.setString(1, username);
-                    setPackageBuyer.setString(2, packageId);
-                    setPackageBuyer.executeUpdate();
+                try (PreparedStatement stm = this.connection.prepareStatement("UPDATE cards SET owner=?, packageId=NULL, storagetype='stack' WHERE packageId=? ;");) {
+                    stm.setString(1, username);
+                    stm.setString(2, packageId);
+                    stm.executeUpdate();
 
                     decreaseBalance(username);
                     logger.info(username + " got package " + packageId);
@@ -52,13 +52,14 @@ public class DatabaseStore {
             }
         } else {
             logger.info(username + " has not enough balance!");
+            return false;
         }
 
-        return false;
+        return true;
     }
 
     private String getLatestPackage() {
-        try (ResultSet rs = this.stmt.executeQuery(DatabaseQuery.SELECT_LATEST_PACKAGE.getQuery());) {
+        try (ResultSet rs = this.stmt.executeQuery("SELECT packageId FROM cards WHERE storagetype='package' LIMIT 1");) {
             if (!rs.next()) {
                 logger.info("There is no package");
                 return null;
@@ -72,9 +73,10 @@ public class DatabaseStore {
     }
 
     public int getCoins(String username) {
-        try (PreparedStatement ps = this.connection.prepareStatement(DatabaseQuery.SELECT_FETCH_COINS.getQuery());) {
-            ps.setString(1, username);
-            ResultSet rs = ps.executeQuery();
+        try (PreparedStatement stm = this.connection.prepareStatement("SELECT balance FROM users WHERE username= ?");) {
+            stm.setString(1, username);
+            ResultSet rs = stm.executeQuery();
+            rs.next();
             return rs.getInt("balance");
         } catch (SQLException e) {
             logger.error(e.getMessage());
@@ -84,36 +86,29 @@ public class DatabaseStore {
 
     public StringBuilder getAllTrade() {
         StringBuilder sb = new StringBuilder();
-        sb.append("\r\n----  Trade ----\r\n");
-
         try {
             ResultSet rs = this.stmt.executeQuery(DatabaseQuery.SELECT_ALL_TRADING_DEALS.getQuery());
             if (rs.next()) {
                 int i = 1;
                 do {
                     sb.append(i)
-                            .append(". Offerer: ")
-                            .append(rs.getString("offer"))
-                            .append(", Card to trade: ")
-                            .append(rs.getString("card_to_trade"))
-                            .append(", Min Damage: ")
-                            .append(rs.getString("min_damage"))
-                            .append(", want Monster: ")
-                            .append(rs.getBoolean("wants_monster"))
-                            .append(", want Spell: ")
-                            .append(rs.getBoolean("wants_spell"))
+                            .append(". Offer: ").append(rs.getString("offer"))
+                            .append(", Card to trade: ").append(rs.getString("card_to_trade"))
+                            .append(", Min Damage: ").append(rs.getString("min_damage"))
+                            .append(", want Monster: ").append(rs.getBoolean("wants_monster"))
+                            .append(", want Spell: ").append(rs.getBoolean("wants_spell"))
                             .append("\r\n");
                 } while (rs.next());
             }
         } catch (SQLException e) {
             logger.error(e.getMessage());
         }
-        sb.append("\r\n-----------\r\n");
+        sb.append("\r\n");
         return sb;
     }
 
     private boolean isCardInDeck(String uuid) {
-        try (PreparedStatement ps = this.connection.prepareStatement(DatabaseQuery.SELECT_STORAGE_BY_UUID.getQuery());) {
+        try (PreparedStatement ps = this.connection.prepareStatement("SELECT storagetype FROM cards WHERE uuid= ?");) {
             ps.setString(1, uuid);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
@@ -132,23 +127,22 @@ public class DatabaseStore {
     public boolean pushTradingDeal(String username, String tradeUUID, String cardOfferUUID, double minDamage, boolean wantsMonster, boolean wantsSpell) {
         if (checkIfCardExists(cardOfferUUID) && !isCardInDeck(cardOfferUUID) && userOwnsCard(username, cardOfferUUID)) {
 
+            try (PreparedStatement stm = this.connection.prepareStatement("INSERT INTO store (uuid, offer, card_to_trade, wants_monster, wants_spell, min_damage) VALUES(?, ?, ?, ?, ?, ?)");) {
+                stm.setString(1, tradeUUID);
+                stm.setString(2, username);
+                stm.setString(3, cardOfferUUID);
+                stm.setBoolean(4, wantsMonster);
+                stm.setBoolean(5, wantsSpell);
+                stm.setDouble(6, minDamage);
+                stm.executeUpdate();
 
-            try (PreparedStatement tradingStmt = this.connection.prepareStatement("INSERT INTO store (uuid, offer, card_to_trade, wants_monster, wants_spell, min_damage) VALUES(?, ?, ?, ?, ?, ?)");) {
-                tradingStmt.setString(1, tradeUUID);
-                tradingStmt.setString(2, username);
-                tradingStmt.setString(3, cardOfferUUID);
-                tradingStmt.setBoolean(4, wantsMonster);
-                tradingStmt.setBoolean(5, wantsSpell);
-                tradingStmt.setDouble(6, minDamage);
-                tradingStmt.executeUpdate();
-
-                logger.info(username + " completed a trade: " + tradeUUID);
+                logger.info(username + " completed the trade: " + tradeUUID);
                 return true;
             } catch (SQLException e) {
                 logger.error(e.getMessage());
             }
         } else {
-            logger.error("User or Card does not exist!");
+            logger.error("Something does not exists");
         }
         return false;
     }
@@ -169,12 +163,11 @@ public class DatabaseStore {
     }
 
 
-    // SQL INJECT
     private CardModel getCardByUUID(String uuid) {
         CardModel c = null;
-        try (PreparedStatement ps = this.connection.prepareStatement(DatabaseQuery.SELECT_CARD_BY_UUID.getQuery());) {
-            ps.setString(1, uuid);
-            ResultSet rs = ps.executeQuery();
+        try (PreparedStatement stm = this.connection.prepareStatement("SELECT * FROM cards WHERE uuid=?");) {
+            stm.setString(1, uuid);
+            ResultSet rs = stm.executeQuery();
             if (!rs.next()) {
                 logger.error("Card does not exist");
             } else {
@@ -191,17 +184,15 @@ public class DatabaseStore {
     private CardModel createCardFromResult(ResultSet rs) throws SQLException {
         CardModel c = null;
 
-        if (rs.getString("cardtype").equals(MonsterType.SPELL.name())) {
-            // CardModel is spell
-            c = new Spell(rs.getString("uuid"), rs.getString("owner"), null, Type.valueOf(rs.getString("elementtype").toUpperCase()),
-                    MonsterType.valueOf(rs.getString("cardtype").toUpperCase()),
+        if (rs.getString("cardType").equals(MonsterType.SPELL.name())) {
+            c = new Spell(rs.getString("uuid"), rs.getString("owner"), null, Type.valueOf(rs.getString("elementType").toUpperCase()),
+                    MonsterType.valueOf(rs.getString("cardType").toUpperCase()),
                     rs.getInt("damage")
             );
         } else {
-            // CardModel is monster
             c = new Monster(rs.getString("uuid"), rs.getString("owner"), null,
-                    Type.valueOf(rs.getString("elementtype").toUpperCase()),
-                    MonsterType.valueOf(rs.getString("cardtype").toUpperCase()),
+                    Type.valueOf(rs.getString("elementType").toUpperCase()),
+                    MonsterType.valueOf(rs.getString("cardType").toUpperCase()),
                     rs.getInt("damage")
             );
 
@@ -210,7 +201,7 @@ public class DatabaseStore {
     }
 
     private void removeTrade(String tradeUUID) {
-        try (PreparedStatement ps = this.connection.prepareStatement(DatabaseQuery.DELETE_TRADE_BY_UUID.getQuery());) {
+        try (PreparedStatement ps = this.connection.prepareStatement("DELETE FROM store WHERE uuid=?");) {
             ps.setString(1, tradeUUID);
             ps.executeQuery();
         } catch (SQLException e) {
@@ -219,10 +210,10 @@ public class DatabaseStore {
     }
 
     private void changeOwnerOfCard(String username, String cardUUID) {
-        try (PreparedStatement setOwner = this.connection.prepareStatement("UPDATE cards SET owner=? WHERE uuid=? ;")) {
-            setOwner.setString(1, username);
-            setOwner.setString(2, cardUUID);
-            setOwner.executeUpdate();
+        try (PreparedStatement stm = this.connection.prepareStatement("UPDATE cards SET owner=? WHERE uuid=? ;")) {
+            stm.setString(1, username);
+            stm.setString(2, cardUUID);
+            stm.executeUpdate();
         } catch (SQLException e) {
             logger.error(e.getMessage());
         }
@@ -258,7 +249,10 @@ public class DatabaseStore {
     }
 
 
+    // Trading need a new logic
+
     // SQL INJECT
+    // Does not work
     public boolean acceptTradingDeal(String username, String tradeUUID, String counterofferUUID) {
         Trade t;
         CardModel offer;
@@ -319,6 +313,7 @@ public class DatabaseStore {
 
 
     // SQL INJECT
+    // Does not work
     public boolean deleteTradeByUser(String username, String tradeUUID) {
         try {
             ResultSet rs = stmt.executeQuery(DatabaseQuery.SELECT_TRADE_WHERE_UUID.getQuery() + tradeUUID + "'");

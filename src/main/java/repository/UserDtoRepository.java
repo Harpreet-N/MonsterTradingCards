@@ -17,8 +17,6 @@ public interface UserDtoRepository {
 
     // Only CRUD Methods
 
-    // im Service Class
-  //  boolean userExists(String username);
 
     UserModel loginUser(String username, String password);
 
@@ -26,7 +24,6 @@ public interface UserDtoRepository {
 
     void addResultSetToArray(List<CardModel> listOfCards, ResultSet rs) throws SQLException;
 
-    boolean checkIfCardIsLocked(String uuid);
 
     List<CardModel> getDeck(String username);
 

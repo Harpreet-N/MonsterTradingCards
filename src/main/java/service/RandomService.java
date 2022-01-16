@@ -17,7 +17,7 @@ public class RandomService {
 
     private static final Logger logger = Logger.getLogger(RandomService.class);
 
-    public static CardModel pickRandomCardFromDeck(List<CardModel> deck) {
+    public static CardModel getRandomCardFromDeck(List<CardModel> deck) {
         try {
             Random rand = SecureRandom.getInstanceStrong();
             return deck.get(rand.nextInt(deck.size()));

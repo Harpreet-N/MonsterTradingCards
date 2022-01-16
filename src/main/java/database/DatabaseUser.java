@@ -175,30 +175,10 @@ public class DatabaseUser implements UserDtoRepository {
         }
     }
 
-
-    /// Sql Inject
-    // Service auslagen
-    @Override
-    public boolean checkIfCardIsLocked(String uuid) {
-        try {
-            ResultSet rs = this.stmt.executeQuery(DatabaseQuery.SELECT_LOCKED_CARD.getQuery() + uuid + "'");
-            if (!rs.next()) {
-                logger.error("CardModel not found");
-            } else {
-                if (rs.getBoolean("locked")) {
-                    return true;
-                }
-            }
-        } catch (SQLException e) {
-            logger.error(e.getMessage());
-        }
-        return false;
-    }
-
     @Override
     public List<CardModel> getDeck(String username) {
         List<CardModel> userDeck = new ArrayList<>();
-        try (PreparedStatement ps = this.connection.prepareStatement(DatabaseQuery.SELECT_FETCH_STACK_BY_USER.getQuery())) {
+        try (PreparedStatement ps = this.connection.prepareStatement("SELECT * FROM cards WHERE storagetype='deck' AND owner=?")) {
             ps.setString(1, username);
             ResultSet rs = ps.executeQuery();
             addResultSetToArray(userDeck, rs);
@@ -246,17 +226,12 @@ public class DatabaseUser implements UserDtoRepository {
             return false;
         }
         for (String uuid : deck) {
-            if (!checkIfCardIsLocked(uuid)) {
-                try (PreparedStatement setPackageBuyer = this.connection.prepareStatement("UPDATE cards SET storagetype='deck' WHERE uuid=? AND owner=? ;");) {
-                    setPackageBuyer.setString(1, uuid);
-                    setPackageBuyer.setString(2, username);
-                    setPackageBuyer.executeUpdate();
-                } catch (SQLException e) {
-                    logger.error(e.getMessage());
-                }
-            } else {
-                logger.error("Cannot add card - is locked");
-                return false;
+            try (PreparedStatement setPackageBuyer = this.connection.prepareStatement("UPDATE cards SET storagetype='deck' WHERE uuid=? AND owner=? ;");) {
+                setPackageBuyer.setString(1, uuid);
+                setPackageBuyer.setString(2, username);
+                setPackageBuyer.executeUpdate();
+            } catch (SQLException e) {
+                logger.error(e.getMessage());
             }
         }
         logger.info(username + " configured a deck!");
@@ -266,7 +241,7 @@ public class DatabaseUser implements UserDtoRepository {
     @Override
     public List<CardModel> getStack(String username) {
         List<CardModel> userStack = new ArrayList<>();
-        try (PreparedStatement ps = this.connection.prepareStatement(DatabaseQuery.SELECT_FETCH_STACK_BY_USER.getQuery())) {
+        try (PreparedStatement ps = this.connection.prepareStatement("SELECT * FROM cards WHERE storagetype='stack' AND owner= ?")) {
             ps.setString(1, username);
             ResultSet rs = ps.executeQuery();
             addResultSetToArray(userStack, rs);
@@ -291,9 +266,10 @@ public class DatabaseUser implements UserDtoRepository {
                 logger.info("Added package " + packageId + " to DB");
             } catch (SQLException e) {
                 logger.error(e.getMessage());
+                return false;
             }
         }
-        return false;
+        return true;
     }
 
     @Override

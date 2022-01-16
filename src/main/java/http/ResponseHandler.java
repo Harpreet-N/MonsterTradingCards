@@ -43,7 +43,7 @@ public class ResponseHandler {
     }
 
 
-    public boolean showAllCards(String username) {
+    public boolean respondsAllCard(String username) {
         try {
             bufferedWriter.write(HTTP_OK + LINE_END);
             bufferedWriter.write(HTTP_CONTENT_TYPE_JSON + LINE_END);
@@ -64,7 +64,7 @@ public class ResponseHandler {
         return true;
     }
 
-    public boolean showDeck(String username) {
+    public boolean respondDeck(String username) {
         try {
             bufferedWriter.write(HTTP_OK + LINE_END);
             bufferedWriter.write(HTTP_CONTENT_TYPE_JSON + LINE_END);
@@ -85,7 +85,7 @@ public class ResponseHandler {
         return true;
     }
 
-    public boolean showDeckPlain(String username) {
+    public boolean respondPlainDeck(String username) {
         try {
             bufferedWriter.write(HTTP_OK + LINE_END);
             bufferedWriter.write(HTTP_CONTENT_TYPE_JSON + LINE_END);
@@ -106,7 +106,7 @@ public class ResponseHandler {
         return true;
     }
 
-    public boolean getScoreboard() {
+    public boolean respondScore() {
         try {
             bufferedWriter.write(HTTP_OK + LINE_END);
             bufferedWriter.write(HTTP_CONTENT_TYPE_JSON + LINE_END);
@@ -120,7 +120,7 @@ public class ResponseHandler {
         return true;
     }
 
-    public boolean getStats(String username) {
+    public boolean respondStats(String username) {
         try {
             bufferedWriter.write(HTTP_OK + LINE_END);
             bufferedWriter.write(HTTP_CONTENT_TYPE_JSON + LINE_END);
@@ -137,7 +137,7 @@ public class ResponseHandler {
         return true;
     }
 
-    public boolean getUserData(String userToEdit) {
+    public boolean respondUserData(String userToEdit) {
         try {
             bufferedWriter.write(HTTP_OK + LINE_END);
             bufferedWriter.write(HTTP_CONTENT_TYPE_JSON + LINE_END);
@@ -154,7 +154,7 @@ public class ResponseHandler {
         return true;
     }
 
-    public boolean getTrade() {
+    public boolean respondTrade() {
         try {
             bufferedWriter.write(HTTP_OK + LINE_END);
             bufferedWriter.write(HTTP_CONTENT_TYPE_JSON + LINE_END);
