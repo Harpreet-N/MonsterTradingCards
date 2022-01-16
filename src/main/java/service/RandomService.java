@@ -1,5 +1,6 @@
 package service;
 
+import lombok.AllArgsConstructor;
 import model.CardModel;
 import model.Monster;
 import model.helper.MonsterType;
@@ -13,11 +14,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
+@AllArgsConstructor
 public class RandomService {
 
     private static final Logger logger = Logger.getLogger(RandomService.class);
 
-    public static CardModel getRandomCardFromDeck(List<CardModel> deck) {
+    public CardModel getRandomCardFromDeck(List<CardModel> deck) {
         try {
             Random rand = SecureRandom.getInstanceStrong();
             return deck.get(rand.nextInt(deck.size()));
@@ -27,7 +29,7 @@ public class RandomService {
         return null;
     }
 
-    public static Type getRandomType() {
+    public Type getRandomType() {
         try {
             Random rand = SecureRandom.getInstanceStrong();
             List<Type> typeList = new ArrayList<>();
@@ -39,7 +41,7 @@ public class RandomService {
         return null;
     }
 
-    public static MonsterType getRandomMonsterType() {
+    public MonsterType getRandomMonsterType() {
         try {
             Random rand = SecureRandom.getInstanceStrong();
             List<MonsterType> typeList = new ArrayList<>();

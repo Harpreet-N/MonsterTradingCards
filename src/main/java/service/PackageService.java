@@ -12,6 +12,8 @@ import java.util.List;
 
 public class PackageService {
 
+    private RandomService randomService = new RandomService();
+
     public List<CardModel> createPackage(String username, List<RequestCardHeader> pkgCards) {
         List<CardModel> packageToAdd = new ArrayList<>();
         for (RequestCardHeader c : pkgCards) {
@@ -27,7 +29,7 @@ public class PackageService {
         return packageToAdd;
     }
 
-    private void getElementsAndMonster(RequestCardHeader c) {
+    public void getElementsAndMonster(RequestCardHeader c) {
         for (MonsterType type : MonsterType.values()) {
             if (c.getName().toUpperCase().contains(type.name())) {
                 c.setMonsterType(type);
@@ -38,7 +40,7 @@ public class PackageService {
         setRandomMonsterIfNull(c);
     }
 
-    private void getElementTyp(RequestCardHeader c) {
+    public void getElementTyp(RequestCardHeader c) {
         for (Type type : Type.values()) {
             if (c.getName().toUpperCase().contains(type.name())) {
                 c.setElementType(type);
@@ -49,13 +51,13 @@ public class PackageService {
 
     private void setRandomElementIfNull(RequestCardHeader c) {
         if (c.getElementType() == null) {
-            c.setElementType(RandomService.getRandomType());
+            c.setElementType(randomService.getRandomType());
         }
     }
 
     private void setRandomMonsterIfNull(RequestCardHeader c) {
         if (c.getMonsterType() == null) {
-            c.setMonsterType(RandomService.getRandomMonsterType());
+            c.setMonsterType(randomService.getRandomMonsterType());
         }
     }
 

@@ -13,8 +13,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import static service.RandomService.getRandomCardFromDeck;
-
 public class BattleLogic {
 
     private static final Logger logger = Logger.getLogger(BattleLogic.class);
@@ -28,6 +26,7 @@ public class BattleLogic {
     private CalculationService calculationService = new CalculationService();
     private LogFightService logFightService = new LogFightService();
     private DeckService deckService = new DeckService();
+    private RandomService randomService = new RandomService();
 
 
     public BattleLogic(Database dbA) {
@@ -72,8 +71,8 @@ public class BattleLogic {
                 evaluateWinAndLostResult(firstUser.getUsername(), secondUser.getUsername());
                 return firstUser;
             } else {
-                CardModel cardModelFirst = getRandomCardFromDeck(deckOne);
-                CardModel cardModelSecond = getRandomCardFromDeck(deckTwo);
+                CardModel cardModelFirst = randomService.getRandomCardFromDeck(deckOne);
+                CardModel cardModelSecond = randomService.getRandomCardFromDeck(deckTwo);
                 if (cardModelFirst != null && cardModelSecond != null) {
                     fight(firstUser, secondUser, cardModelFirst, cardModelSecond, rph, deckOne, deckTwo);
                 } else {
