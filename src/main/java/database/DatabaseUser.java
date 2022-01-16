@@ -88,44 +88,40 @@ public class DatabaseUser implements UserDtoRepository {
     public UserModel loginUser(String username, String password) {
         String exchangeToken = "mtcgToken";
         try {
-            if (this.userExists(username)) {
-                //PreparedStatement --> sql inj
-                ResultSet rs = stmt.executeQuery(DatabaseQuery.SELECT_BY_USERNAME.getQuery() + username + "'");
+            //PreparedStatement --> sql inj
+            ResultSet rs = stmt.executeQuery(DatabaseQuery.SELECT_BY_USERNAME.getQuery() + username + "'");
 
-                while (rs.next()) {
-                    if (AuthenticationService.passwordIsEqual(password, rs.getString("password"))) {
+            while (rs.next()) {
+                if (AuthenticationService.passwordIsEqual(password, rs.getString("password"))) {
 
-                        try (PreparedStatement setExchangeToken = this.connection.prepareStatement("UPDATE users SET token= ? WHERE username = ? ;");) {
-                            setExchangeToken.setString(1, exchangeToken);
-                            setExchangeToken.setString(2, username);
-                            setExchangeToken.executeUpdate();
+                    try (PreparedStatement setExchangeToken = this.connection.prepareStatement("UPDATE users SET token= ? WHERE username = ? ;");) {
+                        setExchangeToken.setString(1, exchangeToken);
+                        setExchangeToken.setString(2, username);
+                        setExchangeToken.executeUpdate();
 
-                            logger.info("UserModel logged in with token: " + exchangeToken);
-                            return new UserModel(
-                                    rs.getString("username"),
-                                    rs.getString("name"),
-                                    rs.getString("password"),
-                                    exchangeToken,
-                                    rs.getString("bio"),
-                                    rs.getString("image"),
-                                    rs.getInt("balance"),
-                                    new ArrayList<>(),
-                                    new ArrayList<>(),
-                                    rs.getInt("elo"),
-                                    rs.getInt("wins"),
-                                    rs.getInt("looses")
-                            );
-                        } catch (SQLException e) {
-                            logger.error(e.getMessage());
-                        }
-                    } else {
-                        logger.error("Password for user " + username + " is incorrect.");
+                        logger.info("UserModel logged in with token: " + exchangeToken);
+                        return new UserModel(
+                                rs.getString("username"),
+                                rs.getString("name"),
+                                rs.getString("password"),
+                                exchangeToken,
+                                rs.getString("bio"),
+                                rs.getString("image"),
+                                rs.getInt("balance"),
+                                new ArrayList<>(),
+                                new ArrayList<>(),
+                                rs.getInt("elo"),
+                                rs.getInt("wins"),
+                                rs.getInt("looses")
+                        );
+                    } catch (SQLException e) {
+                        logger.error(e.getMessage());
                     }
+                } else {
+                    logger.error("Password for user " + username + " is incorrect.");
                 }
-                return null;
-            } else {
-                logger.error("UserModel does not exist.");
             }
+            return null;
         } catch (SQLException e) {
             logger.error(e.getMessage());
         }
@@ -136,30 +132,22 @@ public class DatabaseUser implements UserDtoRepository {
     /// Sql Inject
     // Service auslagen
     public void addWin(String username) {
-        if (userExists(username)) {
-            try (PreparedStatement setWinStatistics = this.connection.prepareStatement("UPDATE users SET wins=wins+1, elo=elo+3 WHERE username =?;");) {
-                setWinStatistics.setString(1, username);
-                setWinStatistics.executeUpdate();
-            } catch (SQLException e) {
-                logger.error(e.getMessage());
-            }
-        } else {
-            logger.error("Error: UserModel does not exist!");
+        try (PreparedStatement setWinStatistics = this.connection.prepareStatement("UPDATE users SET wins=wins+1, elo=elo+3 WHERE username =?;");) {
+            setWinStatistics.setString(1, username);
+            setWinStatistics.executeUpdate();
+        } catch (SQLException e) {
+            logger.error(e.getMessage());
         }
     }
 
     /// Sql Inject
     // Service auslagen
     public void addLoss(String username) {
-        if (userExists(username)) {
-            try (PreparedStatement setLooseStatistics = this.connection.prepareStatement("UPDATE users SET looses=looses+1, elo=elo-5 WHERE username =?;");) {
-                setLooseStatistics.setString(1, username);
-                setLooseStatistics.executeUpdate();
-            } catch (SQLException e) {
-                logger.error(e.getMessage());
-            }
-        } else {
-            logger.error("Error: UserModel does not exist!");
+        try (PreparedStatement setLooseStatistics = this.connection.prepareStatement("UPDATE users SET looses=looses+1, elo=elo-5 WHERE username =?;");) {
+            setLooseStatistics.setString(1, username);
+            setLooseStatistics.executeUpdate();
+        } catch (SQLException e) {
+            logger.error(e.getMessage());
         }
     }
 
@@ -227,27 +215,23 @@ public class DatabaseUser implements UserDtoRepository {
     public UserModel getUserData(String username) {
         UserModel userModel = null;
         try {
-            if (userExists(username)) {
-                ResultSet rs = this.stmt.executeQuery(DatabaseQuery.SELECT_BY_USERNAME.getQuery() + username + "'");
-                if (rs.next()) {
-                    logger.info(username + " has requested his user data!");
-                    return new UserModel(
-                            rs.getString("username"),
-                            rs.getString("name"),
-                            rs.getString("password"),
-                            rs.getString("token"),
-                            rs.getString("bio"),
-                            rs.getString("image"),
-                            rs.getInt("balance"),
-                            new ArrayList<>(),
-                            new ArrayList<>(),
-                            rs.getInt("elo"),
-                            rs.getInt("wins"),
-                            rs.getInt("looses")
-                    );
-                } else {
-                    logger.error("No ResultSet found");
-                }
+            ResultSet rs = this.stmt.executeQuery(DatabaseQuery.SELECT_BY_USERNAME.getQuery() + username + "'");
+            if (rs.next()) {
+                logger.info(username + " has requested his user data!");
+                return new UserModel(
+                        rs.getString("username"),
+                        rs.getString("name"),
+                        rs.getString("password"),
+                        rs.getString("token"),
+                        rs.getString("bio"),
+                        rs.getString("image"),
+                        rs.getInt("balance"),
+                        new ArrayList<>(),
+                        new ArrayList<>(),
+                        rs.getInt("elo"),
+                        rs.getInt("wins"),
+                        rs.getInt("looses")
+                );
             }
         } catch (SQLException e) {
             logger.error(e.getMessage());
@@ -261,27 +245,22 @@ public class DatabaseUser implements UserDtoRepository {
             logger.error("Deck has too many or too less cards!");
             return false;
         }
-        if (userExists(username)) {
-            for (String uuid : deck) {
-                if (!checkIfCardIsLocked(uuid)) {
-                    try (PreparedStatement setPackageBuyer = this.connection.prepareStatement("UPDATE cards SET storagetype='deck' WHERE uuid=? AND owner=? ;");) {
-                        setPackageBuyer.setString(1, uuid);
-                        setPackageBuyer.setString(2, username);
-                        setPackageBuyer.executeUpdate();
-                    } catch (SQLException e) {
-                        logger.error(e.getMessage());
-                    }
-                } else {
-                    logger.error("Cannot add card - is locked");
-                    return false;
+        for (String uuid : deck) {
+            if (!checkIfCardIsLocked(uuid)) {
+                try (PreparedStatement setPackageBuyer = this.connection.prepareStatement("UPDATE cards SET storagetype='deck' WHERE uuid=? AND owner=? ;");) {
+                    setPackageBuyer.setString(1, uuid);
+                    setPackageBuyer.setString(2, username);
+                    setPackageBuyer.executeUpdate();
+                } catch (SQLException e) {
+                    logger.error(e.getMessage());
                 }
+            } else {
+                logger.error("Cannot add card - is locked");
+                return false;
             }
-            logger.info(username + " configured a deck!");
-            return true;
-        } else {
-            logger.error("UserModel does not exist!");
         }
-        return false;
+        logger.info(username + " configured a deck!");
+        return true;
     }
 
     @Override
@@ -350,24 +329,5 @@ public class DatabaseUser implements UserDtoRepository {
         sb.append("\r\n");
 
         return sb;
-    }
-
-    @Override
-    public boolean userExists(String username) {
-        try {
-            ResultSet rs = this.stmt.executeQuery(DatabaseQuery.SELECT_USERNAME.getQuery());
-            if (rs.next()) {
-                do {
-                    if (rs.getString("username").equals(username)) {
-                        return true;
-                    }
-                } while (rs.next());
-            } else {
-                return false;
-            }
-        } catch (SQLException e) {
-            logger.error(e.getMessage());
-        }
-        return false;
     }
 }

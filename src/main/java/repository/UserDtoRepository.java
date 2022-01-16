@@ -18,7 +18,7 @@ public interface UserDtoRepository {
     // Only CRUD Methods
 
     // im Service Class
-    boolean userExists(String username);
+  //  boolean userExists(String username);
 
     UserModel loginUser(String username, String password);
 

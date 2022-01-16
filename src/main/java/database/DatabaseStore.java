@@ -130,10 +130,8 @@ public class DatabaseStore {
     }
 
     public boolean pushTradingDeal(String username, String tradeUUID, String cardOfferUUID, double minDamage, boolean wantsMonster, boolean wantsSpell) {
-        if (userExists(username) && checkIfCardExists(cardOfferUUID) && !isCardInDeck(cardOfferUUID) && userOwnsCard(username, cardOfferUUID)) {
+        if (checkIfCardExists(cardOfferUUID) && !isCardInDeck(cardOfferUUID) && userOwnsCard(username, cardOfferUUID)) {
 
-            // Lock card
-            lockCard(cardOfferUUID);
 
             try (PreparedStatement tradingStmt = this.connection.prepareStatement("INSERT INTO store (uuid, offer, card_to_trade, wants_monster, wants_spell, min_damage) VALUES(?, ?, ?, ?, ?, ?)");) {
                 tradingStmt.setString(1, tradeUUID);
@@ -231,32 +229,6 @@ public class DatabaseStore {
     }
 
 
-    private void lockCard(String cardUUID) {
-        if (checkIfCardExists(cardUUID)) {
-            try (PreparedStatement setPackageBuyer = this.connection.prepareStatement("UPDATE cards SET locked=TRUE WHERE uuid =?;");) {
-                setPackageBuyer.setString(1, cardUUID);
-                setPackageBuyer.executeUpdate();
-            } catch (SQLException e) {
-                logger.error(e.getMessage());
-            }
-        } else {
-            logger.error("CardModel does not exist");
-        }
-    }
-
-    private void unlockCard(String cardUUID) {
-        if (checkIfCardExists(cardUUID)) {
-            try (PreparedStatement setPackageBuyer = this.connection.prepareStatement("UPDATE cards SET locked=FALSE WHERE uuid =?;");) {
-                setPackageBuyer.setString(1, cardUUID);
-                setPackageBuyer.executeUpdate();
-            } catch (SQLException e) {
-                logger.error(e.getMessage());
-            }
-        } else {
-            logger.error("CardModel does not exist");
-        }
-    }
-
     private boolean userPublishedTrade(String username, String tradeUUID) {
         try {
             ResultSet rs = stmt.executeQuery(DatabaseQuery.SELECT_ALL_TRADING_DEALS.getQuery());
@@ -293,7 +265,7 @@ public class DatabaseStore {
         CardModel counterOffer;
 
         try {
-            if (userExists(username) && !userPublishedTrade(username, tradeUUID) && checkIfCardExists(counterofferUUID)) {
+            if (!userPublishedTrade(username, tradeUUID) && checkIfCardExists(counterofferUUID)) {
                 counterOffer = getCardByUUID(counterofferUUID);
                 ResultSet rs = stmt.executeQuery(DatabaseQuery.SELECT_TRADE_WHERE_UUID.getQuery() + tradeUUID + "'");
 
@@ -317,7 +289,6 @@ public class DatabaseStore {
                             changeOwnerOfCard(offer.getOwner(), counterofferUUID);
 
                             removeTrade(t.getUuid());
-                            unlockCard(t.getCardToTrade());
 
                             logger.info(username + " accepted trading deal " + tradeUUID);
                             return true;
@@ -326,7 +297,6 @@ public class DatabaseStore {
                             changeOwnerOfCard(offer.getOwner(), counterofferUUID);
 
                             removeTrade(t.getUuid());
-                            unlockCard(t.getCardToTrade());
 
                             logger.info(username + " accepted trading deal " + tradeUUID);
                             return true;
@@ -351,48 +321,20 @@ public class DatabaseStore {
     // SQL INJECT
     public boolean deleteTradeByUser(String username, String tradeUUID) {
         try {
-            if (this.userExists(username)) {
-                ResultSet rs = stmt.executeQuery(DatabaseQuery.SELECT_TRADE_WHERE_UUID.getQuery() + tradeUUID + "'");
-
-                if (rs.next()) {
-                    String offer = rs.getString("offer");
-                    String cardUUID = rs.getString("card_to_trade");
-
-                    if (offer.equals(username)) {
-                        removeTrade(tradeUUID);
-                        unlockCard(cardUUID);
-
-                        logger.info(username + " delete deal " + tradeUUID);
-                    } else {
-                        logger.error("Trade is not created by user");
-                        return false;
-                    }
-                    return true;
-                } else {
-                    logger.error("ResultSet is empty!");
-                    return false;
-                }
-            } else {
-                logger.error("UserModel does not exist.");
-            }
-        } catch (SQLException e) {
-            logger.error(e.getMessage());
-        }
-
-        return false;
-    }
-
-    public boolean userExists(String username) {
-        try {
-            ResultSet rs = this.stmt.executeQuery(DatabaseQuery.SELECT_USERNAME.getQuery());
+            ResultSet rs = stmt.executeQuery(DatabaseQuery.SELECT_TRADE_WHERE_UUID.getQuery() + tradeUUID + "'");
 
             if (rs.next()) {
-                do {
-                    if (rs.getString("username").equals(username)) {
-                        return true;
-                    }
-                } while (rs.next());
+                String offer = rs.getString("offer");
+                if (offer.equals(username)) {
+                    removeTrade(tradeUUID);
+                    logger.info(username + " delete deal " + tradeUUID);
+                } else {
+                    logger.error("Trade is not created by user");
+                    return false;
+                }
+                return true;
             } else {
+                logger.error("ResultSet is empty!");
                 return false;
             }
         } catch (SQLException e) {
