@@ -74,16 +74,37 @@ public class BattleLogic {
                 CardModel cardModelFirst = randomService.getRandomCardFromDeck(deckOne);
                 CardModel cardModelSecond = randomService.getRandomCardFromDeck(deckTwo);
                 if (cardModelFirst != null && cardModelSecond != null) {
+                    specialRound(cardModelFirst, cardModelSecond, i);
                     fight(firstUser, secondUser, cardModelFirst, cardModelSecond, rph, deckOne, deckTwo);
                 } else {
                     UserModel winner = cardModelFirst == null ? secondUser : firstUser;
                     logger.info("User: " + winner.getUsername() + " won");
+                    uniqueFeature(i, winner, secondUser);
                     return winner;
                 }
             }
         }
         logger.info("Nobody won");
+        uniqueFeature(100, firstUser, secondUser);
         return null;
+    }
+
+    private void specialRound(CardModel cardModelFirst, CardModel cardModelSecond, int roundCount) {
+        if (roundCount == 25 || roundCount == 50 || roundCount == 75) {
+            randomService.setRandomDamage(cardModelFirst, cardModelSecond);
+        }
+    }
+
+    private void uniqueFeature(int i, UserModel firstUser, UserModel secondUser) {
+        if (i == 5) {
+            firstUser.setElo(firstUser.getElo() + 20);
+        } else if (i == 99) {
+            firstUser.setElo(firstUser.getElo() + 10);
+            secondUser.setElo(secondUser.getElo() + 10);
+        } else if (i == 100) {
+            firstUser.setElo(firstUser.getElo() + 5);
+            secondUser.setElo(secondUser.getElo() + 5);
+        }
     }
 
     private void fight(UserModel firstUser, UserModel secondUser, CardModel firstCard, CardModel secondCard, ResponseHandler rph, List<CardModel> deckOne, List<CardModel> deckTwo) {

@@ -29,6 +29,16 @@ public class RandomService {
         return null;
     }
 
+    public void setRandomDamage(CardModel cardModelFirst, CardModel cardModelSecond) {
+        try {
+            Random rand = SecureRandom.getInstanceStrong();
+            cardModelFirst.setDamage(rand.nextInt(100));
+            cardModelSecond.setDamage(rand.nextInt(100));
+        } catch (NoSuchAlgorithmException e) {
+            logger.info("Something went wrong");
+        }
+    }
+
     public Type getRandomType() {
         try {
             Random rand = SecureRandom.getInstanceStrong();
