@@ -7,21 +7,12 @@ import database.Database;
 import database.DatabaseStore;
 import database.DatabaseUser;
 import logic.BattleLogic;
-import model.CardModel;
-import model.Monster;
-import model.Spell;
 import model.UserModel;
-import model.helper.MonsterType;
-import model.helper.Type;
 import model.store.Trade;
 import org.apache.log4j.Logger;
-import service.AuthenticationService;
 import service.PackageService;
-import service.RandomService;
-
 import java.io.*;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
