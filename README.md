@@ -100,4 +100,6 @@ Zb.: Wie ich das meine Model Klasse komplett neu bzw anderes geschrieben hab.
 
 Auch zur BattleLogic wegen wenig Zeit habe ich meine alte Logik verworfen und alles in einer Methode und Klasse gegeben aber durch die zusätzliche Zeit konnte ich meine alte Logik wieder nutzen und es besser trennen, welches das Testen dadurch viel leichter gemacht hat.
 
+**Link to Git:**
 
+https://github.com/Harpreet-N/MonsterTradingCards
