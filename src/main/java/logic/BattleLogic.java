@@ -34,7 +34,7 @@ public class BattleLogic {
         db = new DatabaseUser(dbA.getStmt(), dbA.getConnection());
     }
 
-    public synchronized void queueFighter(ResponseHandler rph, String username) {
+    public synchronized void getPlayerReady(ResponseHandler rph, String username) {
         UserModel userModel = db.getUserData(username);
         battleQueue.add(userModel);
         responseHandler = rph;
@@ -57,7 +57,7 @@ public class BattleLogic {
     }
 
 
-    private UserModel startTheGame(UserModel firstUser, UserModel secondUser, ResponseHandler rph) {
+    private synchronized UserModel startTheGame(UserModel firstUser, UserModel secondUser, ResponseHandler rph) {
         List<CardModel> deckOne = new ArrayList<>(db.getDeck(firstUser.getUsername()));
         List<CardModel> deckTwo = new ArrayList<>(db.getDeck(secondUser.getUsername()));
 
@@ -107,7 +107,7 @@ public class BattleLogic {
         }
     }
 
-    private void fight(UserModel firstUser, UserModel secondUser, CardModel firstCard, CardModel secondCard, ResponseHandler rph, List<CardModel> deckOne, List<CardModel> deckTwo) {
+    private synchronized void fight(UserModel firstUser, UserModel secondUser, CardModel firstCard, CardModel secondCard, ResponseHandler rph, List<CardModel> deckOne, List<CardModel> deckTwo) {
         double[] result = calculationService.calculateDamage(firstCard, secondCard);
         double damageResult = result[0] - result[1];
 
@@ -121,7 +121,7 @@ public class BattleLogic {
         }
     }
 
-    private void logAndRespond(String cardOne, String elementTypeOne, String battleEndMessage, String s, ResponseHandler responseHandler) {
+    private synchronized void logAndRespond(String cardOne, String elementTypeOne, String battleEndMessage, String s, ResponseHandler responseHandler) {
         logger.info(battleEndMessage + elementTypeOne + cardOne + s);
         responseHandler.response(battleEndMessage + elementTypeOne + cardOne + s);
     }

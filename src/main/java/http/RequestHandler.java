@@ -98,12 +98,12 @@ public class RequestHandler extends Thread {
     }
 
 
-    public boolean handleRequest(StringBuilder sbHeader, StringBuilder sbBody) {
-        String[] requestsLines = sbHeader.toString().split(LINE_END);
-        String[] requestLine = requestsLines[0].split(" ");
+    public boolean handleRequest(StringBuilder builder, StringBuilder sbBody) {
+        String[] lines = builder.toString().split(LINE_END);
+        String[] requestLine = lines[0].split(" ");
         String path = requestLine[1];
         String method = requestLine[0];
-        String[] userNameAndToken = userNameAndTokenService.getUserNameAndToken(requestsLines);
+        String[] userNameAndToken = userNameAndTokenService.getUserNameAndToken(lines);
         boolean noError;
 
         RequestHeader header = new RequestHeader(userNameAndToken[0], userNameAndToken[1], sbBody.toString(), method, path);

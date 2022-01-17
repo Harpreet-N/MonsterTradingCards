@@ -40,7 +40,6 @@ public class DatabaseUser implements UserDtoRepository {
         return false;
     }
 
-
     @Override
     public boolean editUser(UserModel userModel) {
         try (PreparedStatement setUserData = this.connection.prepareStatement
@@ -146,18 +145,16 @@ public class DatabaseUser implements UserDtoRepository {
     public void addResultSetToArray(List<CardModel> listOfCards, ResultSet rs) throws SQLException {
         if (rs.next()) {
             do {
-                if (rs.getString("cardtype").equalsIgnoreCase(MonsterType.SPELL.name())) {
-                    // CardModel is spell
+                if (rs.getString("cardType").equalsIgnoreCase(MonsterType.SPELL.name())) {
                     listOfCards.add(new Spell(rs.getString("uuid"), rs.getString("owner"), null,
-                            Type.valueOf(rs.getString("elementtype").toUpperCase()),
-                            MonsterType.valueOf(rs.getString("cardtype").toUpperCase()),
+                            Type.valueOf(rs.getString("elementType").toUpperCase()),
+                            MonsterType.valueOf(rs.getString("cardType").toUpperCase()),
                             rs.getInt("damage")
                     ));
                 } else {
-                    // CardModel is monster
                     listOfCards.add(new Monster(rs.getString("uuid"), rs.getString("owner"), null,
-                            Type.valueOf(rs.getString("elementtype").toUpperCase()),
-                            MonsterType.valueOf(rs.getString("cardtype").toUpperCase()),
+                            Type.valueOf(rs.getString("elementType").toUpperCase()),
+                            MonsterType.valueOf(rs.getString("cardType").toUpperCase()),
                             rs.getInt("damage")
                     ));
                 }
@@ -168,7 +165,7 @@ public class DatabaseUser implements UserDtoRepository {
     @Override
     public List<CardModel> getDeck(String username) {
         List<CardModel> userDeck = new ArrayList<>();
-        try (PreparedStatement ps = this.connection.prepareStatement("SELECT * FROM cards WHERE storagetype='deck' AND owner=?")) {
+        try (PreparedStatement ps = this.connection.prepareStatement("SELECT * FROM cards WHERE storageType='deck' AND owner=?")) {
             ps.setString(1, username);
             ResultSet rs = ps.executeQuery();
             addResultSetToArray(userDeck, rs);
@@ -186,7 +183,7 @@ public class DatabaseUser implements UserDtoRepository {
             ps.setString(1, username);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
-                logger.info(username + " has requested his user data!");
+                logger.info(username + " gets the data!");
                 return new UserModel(
                         rs.getString("username"),
                         rs.getString("name"),
@@ -211,26 +208,26 @@ public class DatabaseUser implements UserDtoRepository {
     @Override
     public boolean configureDeck(String username, List<String> deck) {
         if (deck.size() != 4) {
-            logger.error("Deck has too many or too less cards!");
+            logger.error("Deck has not enough cards!");
             return false;
         }
         for (String uuid : deck) {
-            try (PreparedStatement setPackageBuyer = this.connection.prepareStatement("UPDATE cards SET storagetype='deck' WHERE uuid=? AND owner=? ;");) {
-                setPackageBuyer.setString(1, uuid);
-                setPackageBuyer.setString(2, username);
-                setPackageBuyer.executeUpdate();
+            try (PreparedStatement pr = this.connection.prepareStatement("UPDATE cards SET storageType='deck' WHERE uuid=? AND owner=? ;");) {
+                pr.setString(1, uuid);
+                pr.setString(2, username);
+                pr.executeUpdate();
             } catch (SQLException e) {
                 logger.error(e.getMessage());
             }
         }
-        logger.info(username + " configured a deck!");
+        logger.info(username + " configured the deck! For the user " + username);
         return true;
     }
 
     @Override
     public List<CardModel> getStack(String username) {
         List<CardModel> userStack = new ArrayList<>();
-        try (PreparedStatement ps = this.connection.prepareStatement("SELECT * FROM cards WHERE storagetype='stack' AND owner= ?")) {
+        try (PreparedStatement ps = this.connection.prepareStatement("SELECT * FROM cards WHERE storageType='stack' AND owner= ?")) {
             ps.setString(1, username);
             ResultSet rs = ps.executeQuery();
             addResultSetToArray(userStack, rs);
@@ -244,15 +241,15 @@ public class DatabaseUser implements UserDtoRepository {
     public boolean addPackage(List<CardModel> packageToAdd) {
         String packageId = AuthenticationService.generateAuthToken();
         for (CardModel c : packageToAdd) {
-            try (PreparedStatement insertPackageIntoDB = this.connection.prepareStatement("INSERT INTO cards (uuid, packageId, cardtype, elementtype, damage, storagetype) VALUES(?, ?, ?, ?, ?, ?)");) {
-                insertPackageIntoDB.setString(1, c.getId());
-                insertPackageIntoDB.setString(2, packageId);
-                insertPackageIntoDB.setString(3, c.getMonsterType().name());
-                insertPackageIntoDB.setString(4, c.getElementType().name());
-                insertPackageIntoDB.setDouble(5, c.getDamage());
-                insertPackageIntoDB.setString(6, "package");
-                insertPackageIntoDB.executeUpdate();
-                logger.info("Added package " + packageId + " to DB");
+            try (PreparedStatement ps = this.connection.prepareStatement("INSERT INTO cards (uuid, packageId, cardtype, elementtype, damage, storageType) VALUES(?, ?, ?, ?, ?, ?)");) {
+                ps.setString(1, c.getId());
+                ps.setString(2, packageId);
+                ps.setString(3, c.getMonsterType().name());
+                ps.setString(4, c.getElementType().name());
+                ps.setDouble(5, c.getDamage());
+                ps.setString(6, "package");
+                ps.executeUpdate();
+                logger.info("Added package with the Id " + packageId + " to DB");
             } catch (SQLException e) {
                 logger.error(e.getMessage());
                 return false;
@@ -263,36 +260,33 @@ public class DatabaseUser implements UserDtoRepository {
 
     @Override
     public List<CardModel> getAllCards(String username) {
-        List<CardModel> allCards = new ArrayList<>(getStack(username));
-        allCards.addAll(getDeck(username));
-        return allCards;
+        List<CardModel> cardModelList = new ArrayList<>(getStack(username));
+        cardModelList.addAll(getDeck(username));
+        return cardModelList;
     }
 
     public StringBuilder getRank() {
-        StringBuilder sb = new StringBuilder();
+        StringBuilder builder = new StringBuilder();
         int i = 1;
         try {
             ResultSet rs = this.stmt.executeQuery("SELECT username, elo, wins, looses FROM users ORDER BY elo DESC");
-
             if (rs.next()) {
                 do {
-                    sb.append(i)
-                            .append(".Place: ").append(rs.getString("username"))
-                            .append(" with ")
+                    builder.append(i)
+                            .append(" ").append(rs.getString("username")).append(" with ")
                             .append(+rs.getInt("elo")).append(" Elo Points ")
                             .append(rs.getInt("wins")).append(" with Wins ")
                             .append(rs.getInt("looses")).append(" and Lost \r\n");
                     i++;
                 } while (rs.next());
             } else {
-                logger.error("something went wrong");
-                return sb;
+                logger.error("Rank cannot be displayed");
+                return builder;
             }
         } catch (SQLException e) {
             logger.error(e.getMessage());
         }
-        sb.append("\r\n");
-
-        return sb;
+        builder.append("\r\n");
+        return builder;
     }
 }

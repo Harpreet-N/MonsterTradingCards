@@ -35,9 +35,8 @@ public class RequestTokenHandler {
             return false;
         }
 
-        String operation = requestHeader.getUrl().get(0);
         if (requestHeader.getMethod().equals("GET")) {
-            switch (operation) {
+            switch (requestHeader.getUrl().get(0)) {
                 case "users":
                     String userToEdit = requestHeader.getUrl().get(1);
                     if (userToEdit.equals(username)) {
@@ -65,18 +64,19 @@ public class RequestTokenHandler {
                     return false;
             }
         } else {
-            return handleAllOtherRequests(operation, requestHeader, username, databaseUser, handler, databaseStore);
+            return handleAllOtherRequests(requestHeader.getUrl().get(0), requestHeader, username, databaseUser, handler, databaseStore);
         }
     }
 
-    private boolean handleAllOtherRequests(String operation, RequestHeader requestHeader, String username, DatabaseUser databaseUser, ResponseHandler handler, DatabaseStore databaseStore) {
+    private boolean handleAllOtherRequests(String method, RequestHeader requestHeader, String username, DatabaseUser databaseUser, ResponseHandler handler, DatabaseStore databaseStore) {
         try {
-            switch (operation) {
+            switch (method) {
                 case "deck":
                     List<String> deckCards = Arrays.asList(requestHeader.getBody().replaceAll("[\\[\\] \" ]", "").split("\\s*,\\s*"));
                     return databaseUser.configureDeck(username, deckCards);
                 case "packages":
-                    List<RequestCardHeader> pkgCards = objMapper.readValue(requestHeader.getBody(), new TypeReference<>() {});
+                    List<RequestCardHeader> pkgCards = objMapper.readValue(requestHeader.getBody(), new TypeReference<List<RequestCardHeader>>() {
+                    });
                     return databaseUser.addPackage(packageService.createPackage(username, pkgCards));
                 case "transactions":
                     if (requestHeader.getUrl().get(1).equals("packages")) {
@@ -88,7 +88,7 @@ public class RequestTokenHandler {
                     String userToEdit = requestHeader.getUrl().get(1);
                     UserModel u = objMapper.readValue(requestHeader.getBody(), UserModel.class);
                     u.setUsername(userToEdit);
-
+                    handler.response("Staring Editing: " + username);
                     if (userToEdit.equals(requestHeader.getUsername())) {
                         return databaseUser.editUser(u);
                     }
@@ -97,20 +97,20 @@ public class RequestTokenHandler {
 
                 case "tradings":
                     if (requestHeader.getMethod().equals("POST")) {
-                        if (requestHeader.getUrl().size() == 1) {
-                            Trade t = objMapper.readValue(requestHeader.getBody(), Trade.class);
+                        Trade tradingCard = objMapper.readValue(requestHeader.getBody(), Trade.class);
+                        handler.response("Staring Trading: " + username);
 
-                            return databaseStore.pushTradingDeal(username, t.getUuid(), t.getCardToTrade(), t.getMinDamage(), t.isWantsMonster(), t.isWantsSpell());
-                        } else {
-                            String tradeUUID = requestHeader.getUrl().get(1);
-                            return databaseStore.acceptTradingDeal(username, tradeUUID, requestHeader.getBody().replace("\"", ""));
+                        if (databaseStore.startTrade(username, tradingCard)) {
+                            return databaseStore.changeOwnerOfCard(username, tradingCard.getCardToTrade());
                         }
                     } else {
                         String tradeUUID = requestHeader.getUrl().get(1);
-                        return databaseStore.deleteTradeByUser(username, tradeUUID);
+                        handler.response("Delete Trade: " + tradeUUID);
+                        return databaseStore.removeTrade(tradeUUID);
                     }
+                    return false;
                 case "battles":
-                    battleLogic.queueFighter(handler, username);
+                    battleLogic.getPlayerReady(handler, username);
                     return true;
                 default:
                     return false;
@@ -134,6 +134,7 @@ public class RequestTokenHandler {
                     } else {
                         return false;
                     }
+                    return true;
                 case "users":
                     userModel = objMapper.readValue(body, UserModel.class);
                     if (databaseUser.createUser(userModel)) {

@@ -51,8 +51,6 @@ public class ResponseHandler {
             for (CardModel c : databaseUser.getAllCards(username)) {
                 bufferedWriter.write("\r\n" + c);
             }
-            bufferedWriter.write("Connection: close" + LINE_END);
-            bufferedWriter.write(LINE_END);
             bufferedWriter.flush();
 
             closeBuffer();
@@ -71,11 +69,9 @@ public class ResponseHandler {
             bufferedWriter.write("Content-Length: " + LINE_END);
             bufferedWriter.write(LINE_END);
             bufferedWriter.write("Deck" + LINE_END);
-            for (CardModel c : databaseUser.getDeck(username)) {
-                bufferedWriter.write("\r\n" + c);
+            for (CardModel model : databaseUser.getDeck(username)) {
+                bufferedWriter.write("\r\n" + model);
             }
-            bufferedWriter.flush();
-
             closeBuffer();
         } catch (IOException e) {
             logger.error(e.getMessage());
@@ -95,8 +91,6 @@ public class ResponseHandler {
             for (CardModel c : databaseUser.getDeck(username)) {
                 bufferedWriter.write(LINE_END + c.getId() + ": " + c.getElementType() + c.getMonsterType() + " has the damage " + c.getDamage());
             }
-            bufferedWriter.flush();
-
             closeBuffer();
         } catch (IOException e) {
             logger.error(e.getMessage());

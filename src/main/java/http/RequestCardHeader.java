@@ -18,11 +18,13 @@ public class RequestCardHeader {
     @JsonProperty("Name")
     public String name;
 
-    public MonsterType monsterType;
+    private MonsterType monsterType;
 
-    public Type elementType;
+    private Type elementType;
 
     @JsonProperty("Damage")
     public double damage;
+
+    RequestCardHeader(){};
 }
 
