@@ -15,8 +15,8 @@ public class DeckService {
         } else {
             for (CardModel deckCard : deckTwo) {
                 if (deckCard.equals(card)) {
-                    deckTwo.remove(deckCard);
-                    deckOne.add(deckCard);
+                    deckTwo.remove(card);
+                    deckOne.add(card);
                     break;
                 }
             }

@@ -28,6 +28,8 @@ public class BattleLogic {
     private DeckService deckService = new DeckService();
     private RandomService randomService = new RandomService();
 
+    private UserService userService = new UserService();
+
 
     public BattleLogic(Database dbA) {
         this.dbA = dbA;
@@ -64,11 +66,11 @@ public class BattleLogic {
         for (int i = 0; i < 100; i++) {
             if (deckOne.isEmpty()) {
                 logger.info("User: " + secondUser.getUsername() + " won");
-                evaluateWinAndLostResult(secondUser.getUsername(), firstUser.getUsername());
+                evaluateWinAndLostResult(secondUser, firstUser);
                 return secondUser;
             } else if (deckTwo.isEmpty()) {
                 logger.info("User: " + firstUser.getUsername() + " won");
-                evaluateWinAndLostResult(firstUser.getUsername(), secondUser.getUsername());
+                evaluateWinAndLostResult(firstUser, secondUser);
                 return firstUser;
             } else {
                 CardModel cardModelFirst = randomService.getRandomCardFromDeck(deckOne);
@@ -126,8 +128,8 @@ public class BattleLogic {
         responseHandler.response(battleEndMessage + elementTypeOne + cardOne + s);
     }
 
-    private void evaluateWinAndLostResult(String win, String loser) {
-        db.addWin(win);
-        db.addLoss(loser);
+    private void evaluateWinAndLostResult(UserModel win, UserModel loser) {
+        userService.addWin(win);
+        userService.addLoss(loser);
     }
 }

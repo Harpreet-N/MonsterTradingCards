@@ -53,7 +53,6 @@ public class DatabaseUser implements UserDtoRepository {
             setUserData.setInt(7, userModel.getLooses());
             setUserData.setString(8, userModel.getUsername());
             setUserData.executeUpdate();
-
         } catch (SQLException e) {
             logger.error(e.getMessage());
             return false;
@@ -118,28 +117,20 @@ public class DatabaseUser implements UserDtoRepository {
     }
 
 
-    /// Sql Inject
-    // Service auslagen
-    public void addWin(String username) {
-        try (PreparedStatement setWinStatistics = this.connection.prepareStatement("UPDATE users SET wins=wins+1, elo=elo+3 WHERE username =?;");) {
-            setWinStatistics.setString(1, username);
-            setWinStatistics.executeUpdate();
+
+    @Override
+    public List<CardModel> getDeck(String username) {
+        List<CardModel> userDeck = new ArrayList<>();
+        try (PreparedStatement ps = this.connection.prepareStatement("SELECT * FROM cards WHERE storageType='deck' AND owner=?")) {
+            ps.setString(1, username);
+            ResultSet rs = ps.executeQuery();
+            addResultSetToArray(userDeck, rs);
         } catch (SQLException e) {
             logger.error(e.getMessage());
         }
-    }
 
-    /// Sql Inject
-    // Service auslagen
-    public void addLoss(String username) {
-        try (PreparedStatement setLooseStatistics = this.connection.prepareStatement("UPDATE users SET looses=looses+1, elo=elo-5 WHERE username =?;");) {
-            setLooseStatistics.setString(1, username);
-            setLooseStatistics.executeUpdate();
-        } catch (SQLException e) {
-            logger.error(e.getMessage());
-        }
+        return userDeck;
     }
-
 
     @Override
     public void addResultSetToArray(List<CardModel> listOfCards, ResultSet rs) throws SQLException {
@@ -160,20 +151,6 @@ public class DatabaseUser implements UserDtoRepository {
                 }
             } while (rs.next());
         }
-    }
-
-    @Override
-    public List<CardModel> getDeck(String username) {
-        List<CardModel> userDeck = new ArrayList<>();
-        try (PreparedStatement ps = this.connection.prepareStatement("SELECT * FROM cards WHERE storageType='deck' AND owner=?")) {
-            ps.setString(1, username);
-            ResultSet rs = ps.executeQuery();
-            addResultSetToArray(userDeck, rs);
-        } catch (SQLException e) {
-            logger.error(e.getMessage());
-        }
-
-        return userDeck;
     }
 
     @Override

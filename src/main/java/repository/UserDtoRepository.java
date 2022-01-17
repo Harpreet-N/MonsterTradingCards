@@ -14,16 +14,11 @@ public interface UserDtoRepository {
 
     UserModel getUserData(String username);
 
-
-    // Only CRUD Methods
-
-
     UserModel loginUser(String username, String password);
 
     boolean isTokenEqual(String username, String token);
 
     void addResultSetToArray(List<CardModel> listOfCards, ResultSet rs) throws SQLException;
-
 
     List<CardModel> getDeck(String username);
 

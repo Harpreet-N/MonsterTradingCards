@@ -5,30 +5,17 @@ import repository.UserDtoRepository;
 
 public class UserService {
 
-    private UserDtoRepository userDtoRepository;
-
-    public UserService(UserDtoRepository userDtoRepository) {
-        this.userDtoRepository = userDtoRepository;
+    public UserService() {
     }
 
-    public void createNewUser(UserModel userModel) {
-        this.userDtoRepository.createUser(userModel);
+    public void addLoss(UserModel userData) {
+        userData.setLooses(userData.getLooses() + 1);
+        userData.setElo(userData.getElo() - 5);
     }
 
-
-    // void addWin(String username);
-
-    public void addLoss(String username) {
-        UserModel userData = this.userDtoRepository.getUserData(username);
-        userData.setLooses(userData.getLooses()+1);
-        userData.setElo(userData.getElo()-5);
-        this.userDtoRepository.editUser(userData);
+    public void addWin(UserModel userData) {
+        userData.setWins(userData.getWins() + 1);
+        userData.setElo(userData.getElo() + 5);
     }
 
-    public void addWin(String username) {
-        UserModel userData = this.userDtoRepository.getUserData(username);
-        userData.setLooses(userData.getLooses()+1);
-        userData.setElo(userData.getElo()+5);
-        this.userDtoRepository.editUser(userData);
-    }
 }

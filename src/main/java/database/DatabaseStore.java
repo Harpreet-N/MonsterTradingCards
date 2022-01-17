@@ -40,7 +40,6 @@ public class DatabaseStore {
         }
     }
 
-    // Auch in einer Service Classe
     public void decreaseBalance(String username) {
         try (PreparedStatement stm = this.connection.prepareStatement("UPDATE users SET balance=balance-5 WHERE username =?;");) {
             stm.setString(1, username);
