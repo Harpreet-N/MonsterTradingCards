@@ -65,7 +65,7 @@ public class DatabaseUser implements UserDtoRepository {
     }
 
     @Override
-    public boolean compareExchangeToken(String username, String token) {
+    public boolean isTokenEqual(String username, String token) {
         try (PreparedStatement ps = this.connection.prepareStatement("SELECT token FROM users WHERE username= ? ;");) {
             ps.setString(1, username);
             ResultSet rs = ps.executeQuery();
@@ -83,47 +83,37 @@ public class DatabaseUser implements UserDtoRepository {
         return false;
     }
 
-    // Sql
+
     @Override
     public UserModel loginUser(String username, String password) {
         String exchangeToken = "mtcgToken";
-        try {
-            //PreparedStatement --> sql inj
-            ResultSet rs = stmt.executeQuery(DatabaseQuery.SELECT_BY_USERNAME.getQuery() + username + "'");
+        UserModel userModel = getUserData(username);
+        if (AuthenticationService.passwordIsEqual(password, userModel.getPassword())) {
+            try (PreparedStatement setExchangeToken = this.connection.prepareStatement("UPDATE users SET token= ? WHERE username = ? ;");) {
+                setExchangeToken.setString(1, exchangeToken);
+                setExchangeToken.setString(2, username);
+                setExchangeToken.executeUpdate();
 
-            while (rs.next()) {
-                if (AuthenticationService.passwordIsEqual(password, rs.getString("password"))) {
-
-                    try (PreparedStatement setExchangeToken = this.connection.prepareStatement("UPDATE users SET token= ? WHERE username = ? ;");) {
-                        setExchangeToken.setString(1, exchangeToken);
-                        setExchangeToken.setString(2, username);
-                        setExchangeToken.executeUpdate();
-
-                        logger.info("UserModel logged in with token: " + exchangeToken);
-                        return new UserModel(
-                                rs.getString("username"),
-                                rs.getString("name"),
-                                rs.getString("password"),
-                                exchangeToken,
-                                rs.getString("bio"),
-                                rs.getString("image"),
-                                rs.getInt("balance"),
-                                new ArrayList<>(),
-                                new ArrayList<>(),
-                                rs.getInt("elo"),
-                                rs.getInt("wins"),
-                                rs.getInt("looses")
+                logger.info("UserModel logged in with token: " + exchangeToken);
+                return new UserModel(
+                        userModel.getUsername(),
+                        userModel.getName(),
+                        userModel.getPassword(),
+                        exchangeToken,
+                        userModel.getBio(),
+                        userModel.getImage(),
+                        userModel.getBalance(),
+                        new ArrayList<>(),
+                        new ArrayList<>(),
+                        userModel.getElo(),
+                        userModel.getWins(),
+                        userModel.getLooses()
                         );
-                    } catch (SQLException e) {
-                        logger.error(e.getMessage());
-                    }
-                } else {
-                    logger.error("Password for user " + username + " is incorrect.");
-                }
+            } catch (SQLException e) {
+                logger.error(e.getMessage());
             }
-            return null;
-        } catch (SQLException e) {
-            logger.error(e.getMessage());
+        } else {
+            logger.error("Password for user " + username + " is wrong.");
         }
         return null;
     }
@@ -189,13 +179,12 @@ public class DatabaseUser implements UserDtoRepository {
         return userDeck;
     }
 
-    /// Sql Inject
-    // Service auslagen
     @Override
     public UserModel getUserData(String username) {
         UserModel userModel = null;
-        try {
-            ResultSet rs = this.stmt.executeQuery(DatabaseQuery.SELECT_BY_USERNAME.getQuery() + username + "'");
+        try (PreparedStatement ps = this.connection.prepareStatement("SELECT * FROM users WHERE username=?")) {
+            ps.setString(1, username);
+            ResultSet rs = ps.executeQuery();
             if (rs.next()) {
                 logger.info(username + " has requested his user data!");
                 return new UserModel(

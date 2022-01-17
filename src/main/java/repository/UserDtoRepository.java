@@ -20,7 +20,7 @@ public interface UserDtoRepository {
 
     UserModel loginUser(String username, String password);
 
-    boolean compareExchangeToken(String username, String token);
+    boolean isTokenEqual(String username, String token);
 
     void addResultSetToArray(List<CardModel> listOfCards, ResultSet rs) throws SQLException;
 
