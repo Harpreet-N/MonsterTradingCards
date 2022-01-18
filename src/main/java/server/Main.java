@@ -12,6 +12,9 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.sql.Connection;
 import java.sql.Statement;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 public class Main {
 
     private static final Logger logger = Logger.getLogger(Main.class);
@@ -40,13 +43,15 @@ public class Main {
         // Create BattleLogic
         final BattleLogic battleLogic = new BattleLogic(db);
 
+        final ExecutorService executorService = Executors.newFixedThreadPool(10);
+
         try (ServerSocket serverSocket = new ServerSocket(10001, 5)) {
             logger.info("Sever is starting");
             while (true) {
                 final Socket clientSocket = serverSocket.accept();
                 final RequestHandler requestHandler = new RequestHandler(db, databaseUser, databaseStore, clientSocket, battleLogic);
 
-                requestHandler.start();
+                executorService.submit(requestHandler);
             }
         } catch (Exception e) {
             logger.error("Server is closed: " + e.getMessage());
