@@ -9,7 +9,7 @@ public class UserService {
     }
 
     public void addLoss(UserModel userData) {
-        userData.setLooses(userData.getLooses() + 1);
+        userData.setLooses(userData.getLooses() - 1);
         userData.setElo(userData.getElo() - 5);
     }
 

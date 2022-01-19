@@ -29,6 +29,7 @@ public class BattleLogic {
     private RandomService randomService = new RandomService();
 
     private UserService userService = new UserService();
+    private UniqueFeatureTestService uniqueFeature = new UniqueFeatureTestService();
 
 
     public BattleLogic(Database dbA) {
@@ -81,13 +82,13 @@ public class BattleLogic {
                 } else {
                     UserModel winner = cardModelFirst == null ? secondUser : firstUser;
                     logger.info("User: " + winner.getUsername() + " won");
-                    uniqueFeature(i, winner, secondUser);
+                    uniqueFeature.uniqueFeature(i, winner, secondUser);
                     return winner;
                 }
             }
         }
         logger.info("Nobody won");
-        uniqueFeature(100, firstUser, secondUser);
+        uniqueFeature.uniqueFeature(100, firstUser, secondUser);
         return null;
     }
 
@@ -97,17 +98,7 @@ public class BattleLogic {
         }
     }
 
-    private void uniqueFeature(int i, UserModel firstUser, UserModel secondUser) {
-        if (i == 5) {
-            firstUser.setElo(firstUser.getElo() + 20);
-        } else if (i == 99) {
-            firstUser.setElo(firstUser.getElo() + 10);
-            secondUser.setElo(secondUser.getElo() + 10);
-        } else if (i == 100) {
-            firstUser.setElo(firstUser.getElo() + 5);
-            secondUser.setElo(secondUser.getElo() + 5);
-        }
-    }
+
 
     private synchronized void fight(UserModel firstUser, UserModel secondUser, CardModel firstCard, CardModel secondCard, ResponseHandler rph, List<CardModel> deckOne, List<CardModel> deckTwo) {
         double[] result = calculationService.calculateDamage(firstCard, secondCard);

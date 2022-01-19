@@ -8,10 +8,16 @@ class AuthenticationServiceTest {
     @Test
     void passwordIsEqualTest() {
         String password = "Secret";
+        String hash = AuthenticationService.hashPassword(password);
+        assertThat(AuthenticationService.passwordIsEqual(password, hash)).isTrue();
+
+    }
+
+    @Test
+    void passwordIsNotEqualTest() {
+        String password = "Secret";
         String random = "Hallo";
         String hash = AuthenticationService.hashPassword(password);
-
-        assertThat(AuthenticationService.passwordIsEqual(password, hash)).isTrue();
         assertThat(AuthenticationService.passwordIsEqual(random, hash)).isFalse();
     }
 
